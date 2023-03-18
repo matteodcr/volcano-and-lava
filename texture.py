@@ -3,7 +3,8 @@ import OpenGL.GL as GL              # standard Python OpenGL wrapper
 from PIL import Image               # load texture maps
 import glfw
 import numpy as np                 # all matrix manipulations & OpenGL args
-from core import Mesh, Texture
+from core import Mesh, Node, Texture
+import random
 
 
 # -------------- OpenGL Texture Wrapper ---------------------------------------
@@ -37,9 +38,10 @@ class Texture:
 
 
 # -------------- Textured mesh decorator --------------------------------------
-class Textured:
+class Textured(Node):
     """ Drawable mesh decorator that activates and binds OpenGL textures """
     def __init__(self, drawable, **textures):
+        super().__init__()
         self.drawable = drawable
         self.textures = textures
 
@@ -62,19 +64,11 @@ class Textured:
 class TexturedSphere(Textured):
     """ Procedural textured sphere """
     #avec l'aide de : http://www.songho.ca/opengl/gl_sphere.html
-    def __init__(self, shader, tex_file="Textures/leaves.jpg", position=(0,0,0), r=1, stacks=10, sectors=10):
-        # prepare texture modes cycling variables for interactive toggling
-        self.wraps = cycle([GL.GL_REPEAT, GL.GL_MIRRORED_REPEAT,
-                            GL.GL_CLAMP_TO_BORDER, GL.GL_CLAMP_TO_EDGE])
-        self.filters = cycle([(GL.GL_NEAREST, GL.GL_NEAREST),
-                              (GL.GL_LINEAR, GL.GL_LINEAR),
-                              (GL.GL_LINEAR, GL.GL_LINEAR_MIPMAP_LINEAR)])
-        self.wrap, self.filter = next(self.wraps), next(self.filters)
-        self.file = tex_file
-
+    def __init__(self, shader, texture, position=(0,0,0), r=1, stacks=10, sectors=10):
         # setup plane mesh to be textured
         vertices = ()
         normals = ()
+        tex_coord = ()
         
         lengthInv = 1.0 / r
         sectorStep = 2 * np.pi / sectors
@@ -91,6 +85,7 @@ class TexturedSphere(Textured):
                 x = xy * np.cos(sectorAngle)
                 y = xy * np.sin(sectorAngle)
                 vertices = vertices+((x,y,z),)
+                tex_coord += ((i/stacks, j/sectors),)
                 #normalized vertex normal (nx, ny, nz)
                 nx = x * lengthInv
                 ny = y * lengthInv
@@ -114,113 +109,73 @@ class TexturedSphere(Textured):
                 k1 = k1+1
                 k2 = k2+1
         indices = np.array(indices, np.uint32)
-        mesh = Mesh(shader, attributes=dict(position=scaled), index=indices)
+        mesh = Mesh(shader, attributes=dict(position=scaled, tex_coord=np.array(tex_coord)), index=indices)
 
         # setup & upload texture to GPU, bind it to shader name 'diffuse_map'
-        texture = Texture(tex_file, self.wrap, *self.filter)
         super().__init__(mesh, diffuse_map=texture)
-    
-    def key_handler(self, key):
-        # cycle through texture modes on keypress of F6 (wrap) or F7 (filtering)
-        self.wrap = next(self.wraps) if key == glfw.KEY_F6 else self.wrap
-        self.filter = next(self.filters) if key == glfw.KEY_F7 else self.filter
-        if key in (glfw.KEY_F6, glfw.KEY_F7):
-            texture = Texture(self.file, self.wrap, *self.filter)
-            self.textures.update(diffuse_map=texture)
 
 class Terrain(Textured):
     """ Procedural textured terrain """
-    def __init__(self, shader, tex_file="Textures/grass.png", x=100, y=100, factor=1):
-        self.heatMap = np.random.random((x, y))
-        # prepare texture modes cycling variables for interactive toggling
-        self.wraps = cycle([GL.GL_REPEAT, GL.GL_MIRRORED_REPEAT,
-                            GL.GL_CLAMP_TO_BORDER, GL.GL_CLAMP_TO_EDGE])
-        self.filters = cycle([(GL.GL_NEAREST, GL.GL_NEAREST),
-                              (GL.GL_LINEAR, GL.GL_LINEAR),
-                              (GL.GL_LINEAR, GL.GL_LINEAR_MIPMAP_LINEAR)])
-        self.wrap, self.filter = next(self.wraps), next(self.filters)
-        self.file = tex_file
-
+    def __init__(self, shader, texture, size=(100,100), position=(0,0,0)):
+        (posx,posy,posz)=position
+        (x,y)=size
+        self.heatMap = np.random.random(size)
         # setup plane mesh to be textured
         base_coords = ()
+        tex_coord = ()
         for i in range(x):
             for j in range(y):
-                base_coords = base_coords+((i-x/2, j-y/2, self.heatMap[i][j]/2),) 
-        scaled = factor * np.array(base_coords, np.float32)
+                base_coords = base_coords+((i-x/2+posx, j-y/2+posy, posz+self.heatMap[i][j]/2),) 
+                tex_coord += ((i%2, j%2),)
+        scaled = np.array(base_coords, np.float32)
         
         indices = ()
         for k in range(x, x*y):
             if(k+1<len(base_coords)):
                 indices = indices+(k, k+1, k+1-x, k, k+1-x, k-x)
         indices = np.array(indices, np.uint32)
-        mesh = Mesh(shader, attributes=dict(position=scaled), index=indices)
+        mesh = Mesh(shader, attributes=dict(position=scaled, tex_coord=np.array(tex_coord)), index=indices)
 
         # setup & upload texture to GPU, bind it to shader name 'diffuse_map'
-        texture = Texture(tex_file, self.wrap, *self.filter)
         super().__init__(mesh, diffuse_map=texture)
-    
-    def key_handler(self, key):
-        # cycle through texture modes on keypress of F6 (wrap) or F7 (filtering)
-        self.wrap = next(self.wraps) if key == glfw.KEY_F6 else self.wrap
-        self.filter = next(self.filters) if key == glfw.KEY_F7 else self.filter
-        if key in (glfw.KEY_F6, glfw.KEY_F7):
-            texture = Texture(self.file, self.wrap, *self.filter)
-            self.textures.update(diffuse_map=texture)
 
 class TexturedPlane(Textured):
     """ Simple first textured object """
-    def __init__(self, shader, tex_file):
-        # prepare texture modes cycling variables for interactive toggling
-        self.wraps = cycle([GL.GL_REPEAT, GL.GL_MIRRORED_REPEAT,
-                            GL.GL_CLAMP_TO_BORDER, GL.GL_CLAMP_TO_EDGE])
-        self.filters = cycle([(GL.GL_NEAREST, GL.GL_NEAREST),
-                              (GL.GL_LINEAR, GL.GL_LINEAR),
-                              (GL.GL_LINEAR, GL.GL_LINEAR_MIPMAP_LINEAR)])
-        self.wrap, self.filter = next(self.wraps), next(self.filters)
-        self.file = tex_file
-
+    def __init__(self, shader, texture, position=(0,0,0)):
+        (posx,posy,posz) = position
         # setup plane mesh to be textured
-        base_coords = ((-1, -1, 0), (1, -1, 0), (1, 1, 0), (-1, 1, 0))
+        base_coords = ((-1+posx, -1+posy, posz), (1+posx, -1+posy, posz), (1+posx, 1+posy, posz), (-1+posx, 1+posy, posz))
+        tex_coord=((0,0),(1,0),(1,1),(0,1))
         scaled = 100 * np.array(base_coords, np.float32)
         indices = np.array((0, 1, 2, 0, 2, 3), np.uint32)
-        mesh = Mesh(shader, attributes=dict(position=scaled), index=indices)
+        mesh = Mesh(shader, attributes=dict(position=scaled, tex_coord=np.array(tex_coord)), index=indices)
 
         # setup & upload texture to GPU, bind it to shader name 'diffuse_map'
-        texture = Texture(tex_file, self.wrap, *self.filter)
         super().__init__(mesh, diffuse_map=texture)
-
-    def key_handler(self, key):
-        # cycle through texture modes on keypress of F6 (wrap) or F7 (filtering)
-        self.wrap = next(self.wraps) if key == glfw.KEY_F6 else self.wrap
-        self.filter = next(self.filters) if key == glfw.KEY_F7 else self.filter
-        if key in (glfw.KEY_F6, glfw.KEY_F7):
-            texture = Texture(self.file, self.wrap, *self.filter)
-            self.textures.update(diffuse_map=texture)
-
 class TexturedCylinder(Textured):
     """ Simple first textured object """
-    def __init__(self, shader, tex_file="Textures/tronc.jpg", height=1, divisions=50, r=0.5, position=(0,0,0)):
-        # prepare texture modes cycling variables for interactive toggling
-        self.wraps = cycle([GL.GL_REPEAT, GL.GL_MIRRORED_REPEAT,
-                            GL.GL_CLAMP_TO_BORDER, GL.GL_CLAMP_TO_EDGE])
-        self.filters = cycle([(GL.GL_NEAREST, GL.GL_NEAREST),
-                              (GL.GL_LINEAR, GL.GL_LINEAR),
-                              (GL.GL_LINEAR, GL.GL_LINEAR_MIPMAP_LINEAR)])
-        self.wrap, self.filter = next(self.wraps), next(self.filters)
-        self.file = tex_file
-        
+    def __init__(self, shader, texture, height=1, divisions=50, r=0.5, position=(0,0,0)):        
         self.height = height
         self.divisions = divisions
         self.ray = r
 
         # setup plane mesh to be textured
         vertices = ()
+        tex_coord = ()
         vertices = vertices + ((0, 0, self.height/2),)
+        tex_coord += ((0,0),)
+        tex_i=0
         for x in np.arange(0, 2*np.pi, 2*np.pi/self.divisions):
             vertices = vertices + ((self.ray*np.cos(x), self.ray*np.sin(x), self.height/2),)
+            tex_coord += ((tex_i/divisions, 0),)
+            tex_i+=1
         vertices = vertices + ((0, 0, -self.height/2),)
+        tex_coord += ((1,1),)
+        tex_i=0
         for x in np.arange(0, 2*np.pi, 2*np.pi/self.divisions):
             vertices = vertices + ((self.ray*np.cos(x), self.ray*np.sin(x), -self.height/2),)
+            tex_coord += ((tex_i/divisions, 1),)
+            tex_i+=1
         scaled = np.array(vertices, np.float32)+np.array(position, np.float32)
         
         index = ()
@@ -237,16 +192,36 @@ class TexturedCylinder(Textured):
             index = index + (x,self.divisions+x+1,x+1,x+1,self.divisions+x+1,self.divisions+x+2)
         index = index + (self.divisions,self.divisions*2+1,1,1,self.divisions*2+1,self.divisions+2)
         indices = np.array(index, np.uint32)
-        mesh = Mesh(shader, attributes=dict(position=scaled), index=indices)
+        mesh = Mesh(shader, attributes=dict(position=scaled, tex_coord=np.array(tex_coord)), index=indices)
 
         # setup & upload texture to GPU, bind it to shader name 'diffuse_map'
-        texture = Texture(tex_file, self.wrap, *self.filter)
         super().__init__(mesh, diffuse_map=texture)
 
-    def key_handler(self, key):
-        # cycle through texture modes on keypress of F6 (wrap) or F7 (filtering)
-        self.wrap = next(self.wraps) if key == glfw.KEY_F6 else self.wrap
-        self.filter = next(self.filters) if key == glfw.KEY_F7 else self.filter
-        if key in (glfw.KEY_F6, glfw.KEY_F7):
-            texture = Texture(self.file, self.wrap, *self.filter)
-            self.textures.update(diffuse_map=texture)
+class TexturedTree(Node):
+    def __init__(self, shader, position, leavesTextures, trunkTextures):
+        super().__init__()
+        random.seed()
+        
+        (x,y,z) = position
+        self.position = position
+        trunk_height = 5+random.random()
+        main_leaves_size = 2+random.random()
+        
+        self.add(TexturedCylinder(shader, position=(x,y,z+trunk_height/2), height=trunk_height, texture=trunkTextures))
+        self.add(TexturedSphere(shader, position=(x,y,z+trunk_height), r=main_leaves_size, texture=leavesTextures))
+        
+        for i in range(random.randint(0, 3)):
+            x_=x + (random.randint(0,1)*2-1)*random.random()*main_leaves_size
+            y_=y + (random.randint(0,1)*2-1)*random.random()*(main_leaves_size-np.abs(x_-x))
+            z_=z + (random.randint(0,1)*2-1)*(main_leaves_size-np.abs(x_-x)-np.abs(y_-y))
+            self.add(TexturedSphere(shader, position=(x_,y_,z_+trunk_height), r=random.random(), texture=leavesTextures))
+        
+class ForestTerrain(Node):
+    def __init__(self, shader, terrainTexture, trunkTextures, leavesTextures, size=(100,100), position=(0,0,0) ):
+        super().__init__()
+        self.add(Terrain(shader=shader, size=size, texture=terrainTexture, position=position))
+        (length, width) = size
+        (posx,posy,posz) = position
+        trees = random.randint(0,(length/10)*(width/10))
+        for t in range(trees):
+            self.add(TexturedTree(shader=shader, position=(posx-length/2+length*random.random(),posy-width/2+width*random.random(),posz), trunkTextures=trunkTextures, leavesTextures=leavesTextures))

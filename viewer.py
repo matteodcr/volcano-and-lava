@@ -12,7 +12,7 @@ import glfw                         # lean window system wrapper for OpenGL
 
 from core import Shader, Mesh, Viewer, Node, load
 from transform import translate, identity, rotate, scale
-from texture import Terrain, TexturedSphere, TexturedCylinder
+from texture import Terrain, TexturedSphere, TexturedCylinder, TexturedPlane, TexturedTree, ForestTerrain,Texture
 
 
 
@@ -58,9 +58,7 @@ def main():
     viewer.add(*[mesh for file in sys.argv[1:] for mesh in load(file, shader)])
     if len(sys.argv) < 2:
         viewer.add(Axis(shaderTexture))
-        viewer.add(Terrain(shaderTexture))
-        viewer.add(TexturedSphere(shaderTexture, position=(5,2,1)))
-        viewer.add(TexturedCylinder(shaderTexture, position=(2,3,6)))
+        viewer.add(ForestTerrain(shader=shaderTexture, terrainTexture=Texture("Textures/grass.png"),trunkTextures=Texture("Textures/tronc.jpg"), leavesTextures=Texture("Textures/leaves.jpg")))
         print('Usage:\n\t%s [3dfile]*\n\n3dfile\t\t the filename of a model in'
               ' format supported by assimp.' % (sys.argv[0],))
 
