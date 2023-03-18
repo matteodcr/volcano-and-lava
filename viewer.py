@@ -81,6 +81,7 @@ class TexturedPlane(Textured):
         if key in (glfw.KEY_F6, glfw.KEY_F7):
             texture = Texture(self.file, self.wrap, *self.filter)
             self.textures.update(diffuse_map=texture)
+            
 
 class Terrain(Textured):
     """ Procedural textured terrain """
@@ -121,6 +122,75 @@ class Terrain(Textured):
             texture = Texture(self.file, self.wrap, *self.filter)
             self.textures.update(diffuse_map=texture)
 
+class TexturedSphere(Textured):
+    """ Procedural textured sphere """
+    #avec l'aide de : http://www.songho.ca/opengl/gl_sphere.html
+    def __init__(self, shader, tex_file="Textures/leaves.jpg", position=(0,0,0), r=1, stacks=10, sectors=10):
+        # prepare texture modes cycling variables for interactive toggling
+        self.wraps = cycle([GL.GL_REPEAT, GL.GL_MIRRORED_REPEAT,
+                            GL.GL_CLAMP_TO_BORDER, GL.GL_CLAMP_TO_EDGE])
+        self.filters = cycle([(GL.GL_NEAREST, GL.GL_NEAREST),
+                              (GL.GL_LINEAR, GL.GL_LINEAR),
+                              (GL.GL_LINEAR, GL.GL_LINEAR_MIPMAP_LINEAR)])
+        self.wrap, self.filter = next(self.wraps), next(self.filters)
+        self.file = tex_file
+
+        # setup plane mesh to be textured
+        vertices = ()
+        normals = ()
+        
+        lengthInv = 1.0 / r
+        sectorStep = 2 * np.pi / sectors
+        stackStep = np.pi / stacks        
+
+        for i in range(stacks+1):
+            stackAngle = np.pi / 2 - i * stackStep
+            xy = r * np.cos(stackAngle)
+            z = r * np.sin(stackAngle)
+
+            for j in range(sectors+1):
+                sectorAngle = j * sectorStep
+                # vertex position (x, y, z)
+                x = xy * np.cos(sectorAngle)
+                y = xy * np.sin(sectorAngle)
+                vertices = vertices+((x,y,z),)
+                #normalized vertex normal (nx, ny, nz)
+                nx = x * lengthInv
+                ny = y * lengthInv
+                nz = z * lengthInv
+                normals = normals+((nx,ny,nz),)
+        scaled = np.array(vertices, np.float32)+np.array(position, np.float32)
+        
+        indices = ()
+        for i in range(stacks):
+            k1 = i * (sectors + 1)
+            k2 = k1 + sectors + 1
+            for j in range(sectors):
+                
+                # 2 triangles per sector excluding first and last stacks
+                if(i != 0) :
+                    indices = indices+((k1, k2, k1+1),)
+
+                if(i != (stacks-1)):
+                    indices = indices+((k1+1, k2, k2+1),)
+                
+                k1 = k1+1
+                k2 = k2+1
+        indices = np.array(indices, np.uint32)
+        mesh = Mesh(shader, attributes=dict(position=scaled), index=indices)
+
+        # setup & upload texture to GPU, bind it to shader name 'diffuse_map'
+        texture = Texture(tex_file, self.wrap, *self.filter)
+        super().__init__(mesh, diffuse_map=texture)
+    
+    def key_handler(self, key):
+        # cycle through texture modes on keypress of F6 (wrap) or F7 (filtering)
+        self.wrap = next(self.wraps) if key == glfw.KEY_F6 else self.wrap
+        self.filter = next(self.filters) if key == glfw.KEY_F7 else self.filter
+        if key in (glfw.KEY_F6, glfw.KEY_F7):
+            texture = Texture(self.file, self.wrap, *self.filter)
+            self.textures.update(diffuse_map=texture)
+
 
 # -------------- main program and scene setup --------------------------------
 def main():
@@ -128,14 +198,15 @@ def main():
     viewer = Viewer()
 
     # default color shader
-    shader = Shader("color.vert", "color.frag")
-    shaderTexture = Shader("texture.vert", "texture.frag")
+    shader = Shader("Shaders/color.vert", "Shaders/color.frag")
+    shaderTexture = Shader("Shaders/texture.vert", "Shaders/texture.frag")
 
     # place instances of our basic objects
     viewer.add(*[mesh for file in sys.argv[1:] for mesh in load(file, shader)])
     if len(sys.argv) < 2:
-        #viewer.add(TexturedPlane(shaderTexture, "Textures/grass.png"))
+        viewer.add(Axis(shaderTexture))
         viewer.add(Terrain(shaderTexture))
+        viewer.add(TexturedSphere(shaderTexture, position=(5,2,1)))
         print('Usage:\n\t%s [3dfile]*\n\n3dfile\t\t the filename of a model in'
               ' format supported by assimp.' % (sys.argv[0],))
 
