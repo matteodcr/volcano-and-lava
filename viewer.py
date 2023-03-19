@@ -57,16 +57,14 @@ def main():
     shaderLight = Shader("Shaders/phong.vert", "Shaders/phong.frag")
     skyboxShader = Shader("Shaders/skybox.vert", "Shaders/skybox.frag")
 
-    light_dir = (-1, -1, -1)
+    light_dir = (1, 1, 1)
 
     # place instances of our basic objects
-    viewer.add(*[mesh for file in sys.argv[1:] for mesh in load(file, shader, light_dir=light_dir)])
+    viewer.add(*[mesh for file in sys.argv[1:] for mesh in load(file, shaderLight, light_dir=light_dir)])
     if len(sys.argv) < 2:
         viewer.add(Axis(shaderTexture))
         viewer.add(SkyBox(skyboxShader, "Textures/skybox/"))
-        viewer.add(ForestTerrain(shader=shaderLight, terrainTexture=Texture("Textures/grass.png"),
-                                 trunkTextures=Texture("Textures/tronc.jpg"),
-                                 leavesTextures=Texture("Textures/leaves.jpg"), light_dir=light_dir))
+        viewer.add(ForestTerrain(position=(0,-1,0), shader=shaderLight, terrainTexture=Texture("Textures/grass.png"),trunkTextures=Texture("Textures/tronc.jpg"),leavesTextures=Texture("Textures/leaves.jpg"), light_dir=light_dir))
         print('Usage:\n\t%s [3dfile]*\n\n3dfile\t\t the filename of a model in'
               ' format supported by assimp.' % (sys.argv[0],))
 
