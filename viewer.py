@@ -11,6 +11,7 @@ import numpy as np                  # all matrix manipulations & OpenGL args
 import glfw                         # lean window system wrapper for OpenGL
 
 from core import Shader, Mesh, Viewer, Node, load
+from skybox import CubeMapTexture
 from transform import translate, identity, rotate, scale
 from texture import Terrain, TexturedSphere, TexturedCylinder, TexturedPlane, TexturedTree, ForestTerrain,Texture
 
@@ -54,14 +55,15 @@ def main():
     shader = Shader("Shaders/color.vert", "Shaders/color.frag")
     shaderTexture = Shader("Shaders/texture.vert", "Shaders/texture.frag")
     shaderLight = Shader("Shaders/phong.vert", "Shaders/phong.frag")
+    skyboxShader = Shader("Shaders/skybox.vert", "Shaders/skybox.frag")
     
     light_dir = (-1,-1,-1)
 
     # place instances of our basic objects
     viewer.add(*[mesh for file in sys.argv[1:] for mesh in load(file, shader, light_dir=light_dir)])
     if len(sys.argv) < 2:
-        viewer.add(Axis(shaderTexture))
-        #viewer.add(TexturedCylinder(shader=shaderLight, texture=Texture("Textures/leaves.jpg"), light_dir=light_dir))
+        # viewer.add(Axis(shaderTexture))
+        viewer.add(CubeMapTexture(skyboxShader, "Textures/skybox/"))
         viewer.add(ForestTerrain(shader=shaderLight, terrainTexture=Texture("Textures/grass.png"),trunkTextures=Texture("Textures/tronc.jpg"), leavesTextures=Texture("Textures/leaves.jpg"), light_dir=light_dir))
         print('Usage:\n\t%s [3dfile]*\n\n3dfile\t\t the filename of a model in'
               ' format supported by assimp.' % (sys.argv[0],))
