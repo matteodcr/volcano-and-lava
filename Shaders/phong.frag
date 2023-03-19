@@ -3,11 +3,14 @@
 // fragment position and normal of the fragment, in WORLD coordinates
 in vec3 w_position, w_normal;
 
+uniform sampler2D diffuse_map;
+in vec2 frag_tex_coords;
+
 // light dir, in world coordinates
 uniform vec3 light_dir;
 
 // material properties
-uniform vec3 k_d, k_a, k_s;
+uniform vec3 k_a;
 uniform float s;
 
 // world camera position
@@ -22,8 +25,9 @@ void main() {
     vec3 v = normalize(w_camera_position - w_position);
     vec3 r = reflect(-l, n);
 
-    vec3 diffuse_color = k_d * max(dot(n, l), 0);
-    vec3 specular_color = k_s * pow(max(dot(r, v), 0), s);
+    vec3 diffuse_color = texture(diffuse_map, frag_tex_coords).rgb * max(dot(n, l), 0);
+    vec3 specular_color = texture(diffuse_map, frag_tex_coords).rgb * pow(max(dot(r, v), 0), s);
 
     out_color = vec4(k_a, 1) + vec4(diffuse_color, 1) + vec4(specular_color, 1);
+    
 }

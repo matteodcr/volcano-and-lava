@@ -58,13 +58,10 @@ class Textured(Node):
 
 # -------------- Textured Objects ---------------------------------
 
-
-
-
 class TexturedSphere(Textured):
     """ Procedural textured sphere """
     #avec l'aide de : http://www.songho.ca/opengl/gl_sphere.html
-    def __init__(self, shader, texture, position=(0,0,0), r=1, stacks=10, sectors=10):
+    def __init__(self, shader, texture, position=(0,0,0), r=1, stacks=10, sectors=10, light_dir=None, shinyness=2):
         # setup plane mesh to be textured
         vertices = ()
         normals = ()
@@ -109,14 +106,14 @@ class TexturedSphere(Textured):
                 k1 = k1+1
                 k2 = k2+1
         indices = np.array(indices, np.uint32)
-        mesh = Mesh(shader, attributes=dict(position=scaled, tex_coord=np.array(tex_coord)), index=indices)
+        mesh = Mesh(shader, attributes=dict(position=scaled, tex_coord=np.array(tex_coord), normal=np.array(normals)), index=indices, s=shinyness, light_dir=light_dir)
 
         # setup & upload texture to GPU, bind it to shader name 'diffuse_map'
         super().__init__(mesh, diffuse_map=texture)
 
 class Terrain(Textured):
     """ Procedural textured terrain """
-    def __init__(self, shader, texture, size=(100,100), position=(0,0,0)):
+    def __init__(self, shader, texture, size=(100,100), position=(0,0,0), light_dir=None, shinyness=2):
         (posx,posy,posz)=position
         (x,y)=size
         self.heatMap = np.random.random(size)
@@ -130,31 +127,47 @@ class Terrain(Textured):
         scaled = np.array(base_coords, np.float32)
         
         indices = ()
+        normals = np.zeros_like(scaled)
         for k in range(x, x*y):
             if(k+1<len(base_coords)):
                 indices = indices+(k, k+1, k+1-x, k, k+1-x, k-x)
+                
+                # Calculate triangle normal
+                v1, v2, v3 = scaled[k-x], scaled[k+1], scaled[k+1-x]
+                tri_normal = np.cross(v2 - v1, v3 - v1)
+                # Add triangle normal to vertex normals
+                normals[k-x] += tri_normal
+                normals[k+1] += tri_normal
+                normals[k+1-x] += tri_normal
+        
+        # Normalize vertex normals
+        normals = np.array([np.divide(n, np.sqrt(np.sum(n ** 2))) for n in normals])
+        
+        print(normals)
+        
         indices = np.array(indices, np.uint32)
-        mesh = Mesh(shader, attributes=dict(position=scaled, tex_coord=np.array(tex_coord)), index=indices)
+        mesh = Mesh(shader, attributes=dict(position=scaled, tex_coord=np.array(tex_coord), normal=normals), index=indices, s=shinyness, light_dir=light_dir)
 
         # setup & upload texture to GPU, bind it to shader name 'diffuse_map'
         super().__init__(mesh, diffuse_map=texture)
 
 class TexturedPlane(Textured):
     """ Simple first textured object """
-    def __init__(self, shader, texture, position=(0,0,0)):
+    def __init__(self, shader, texture, position=(0,0,0), light_dir=None, shinyness=2):
         (posx,posy,posz) = position
         # setup plane mesh to be textured
         base_coords = ((-1+posx, -1+posy, posz), (1+posx, -1+posy, posz), (1+posx, 1+posy, posz), (-1+posx, 1+posy, posz))
         tex_coord=((0,0),(1,0),(1,1),(0,1))
         scaled = 100 * np.array(base_coords, np.float32)
         indices = np.array((0, 1, 2, 0, 2, 3), np.uint32)
-        mesh = Mesh(shader, attributes=dict(position=scaled, tex_coord=np.array(tex_coord)), index=indices)
+        normals=np.array(((0,0,1), (0,0,1), (0,0,1), (0,0,1)))
+        mesh = Mesh(shader, attributes=dict(position=scaled, tex_coord=np.array(tex_coord), normal=normals), index=indices, s=shinyness, light_dir=light_dir)
 
         # setup & upload texture to GPU, bind it to shader name 'diffuse_map'
         super().__init__(mesh, diffuse_map=texture)
 class TexturedCylinder(Textured):
     """ Simple first textured object """
-    def __init__(self, shader, texture, height=1, divisions=50, r=0.5, position=(0,0,0)):        
+    def __init__(self, shader, texture, height=1, divisions=50, r=0.5, position=(0,0,0), light_dir=None, shinyness=2):        
         self.height = height
         self.divisions = divisions
         self.ray = r
@@ -162,19 +175,24 @@ class TexturedCylinder(Textured):
         # setup plane mesh to be textured
         vertices = ()
         tex_coord = ()
+        normals = ()
         vertices = vertices + ((0, 0, self.height/2),)
         tex_coord += ((0,0),)
+        normals += ((0, 0, 1),)
         tex_i=0
         for x in np.arange(0, 2*np.pi, 2*np.pi/self.divisions):
             vertices = vertices + ((self.ray*np.cos(x), self.ray*np.sin(x), self.height/2),)
             tex_coord += ((tex_i/divisions, 0),)
+            normals += ((np.cos(x), np.sin(x), 0),)
             tex_i+=1
         vertices = vertices + ((0, 0, -self.height/2),)
         tex_coord += ((1,1),)
+        normals += ((0, 0, -1),)
         tex_i=0
         for x in np.arange(0, 2*np.pi, 2*np.pi/self.divisions):
             vertices = vertices + ((self.ray*np.cos(x), self.ray*np.sin(x), -self.height/2),)
             tex_coord += ((tex_i/divisions, 1),)
+            normals += ((np.cos(x), np.sin(x), 0),)
             tex_i+=1
         scaled = np.array(vertices, np.float32)+np.array(position, np.float32)
         
@@ -192,13 +210,14 @@ class TexturedCylinder(Textured):
             index = index + (x,self.divisions+x+1,x+1,x+1,self.divisions+x+1,self.divisions+x+2)
         index = index + (self.divisions,self.divisions*2+1,1,1,self.divisions*2+1,self.divisions+2)
         indices = np.array(index, np.uint32)
-        mesh = Mesh(shader, attributes=dict(position=scaled, tex_coord=np.array(tex_coord)), index=indices)
+        
+        mesh = Mesh(shader, attributes=dict(position=scaled, tex_coord=np.array(tex_coord), normal=np.array(normals)), index=indices, s=shinyness, light_dir=light_dir)
 
         # setup & upload texture to GPU, bind it to shader name 'diffuse_map'
         super().__init__(mesh, diffuse_map=texture)
 
 class TexturedTree(Node):
-    def __init__(self, shader, position, leavesTextures, trunkTextures):
+    def __init__(self, shader, position, leavesTextures, trunkTextures, light_dir=None):
         super().__init__()
         random.seed()
         
@@ -207,21 +226,21 @@ class TexturedTree(Node):
         trunk_height = 5+random.random()
         main_leaves_size = 2+random.random()
         
-        self.add(TexturedCylinder(shader, position=(x,y,z+trunk_height/2), height=trunk_height, texture=trunkTextures))
-        self.add(TexturedSphere(shader, position=(x,y,z+trunk_height), r=main_leaves_size, texture=leavesTextures))
+        self.add(TexturedCylinder(shader, position=(x,y,z+trunk_height/2), height=trunk_height, texture=trunkTextures, light_dir=light_dir))
+        self.add(TexturedSphere(shader, position=(x,y,z+trunk_height), r=main_leaves_size, texture=leavesTextures, light_dir=light_dir))
         
         for i in range(random.randint(0, 3)):
             x_=x + (random.randint(0,1)*2-1)*random.random()*main_leaves_size
             y_=y + (random.randint(0,1)*2-1)*random.random()*(main_leaves_size-np.abs(x_-x))
             z_=z + (random.randint(0,1)*2-1)*(main_leaves_size-np.abs(x_-x)-np.abs(y_-y))
-            self.add(TexturedSphere(shader, position=(x_,y_,z_+trunk_height), r=random.random(), texture=leavesTextures))
+            self.add(TexturedSphere(shader, position=(x_,y_,z_+trunk_height), r=random.random(), texture=leavesTextures, light_dir=light_dir))
         
 class ForestTerrain(Node):
-    def __init__(self, shader, terrainTexture, trunkTextures, leavesTextures, size=(100,100), position=(0,0,0) ):
+    def __init__(self, shader, terrainTexture, trunkTextures, leavesTextures, size=(100,100), position=(0,0,0), light_dir=None ):
         super().__init__()
-        self.add(Terrain(shader=shader, size=size, texture=terrainTexture, position=position))
+        self.add(Terrain(shader=shader, size=size, texture=terrainTexture, position=position, light_dir=light_dir))
         (length, width) = size
         (posx,posy,posz) = position
         trees = random.randint(0,(length/10)*(width/10))
         for t in range(trees):
-            self.add(TexturedTree(shader=shader, position=(posx-length/2+length*random.random(),posy-width/2+width*random.random(),posz), trunkTextures=trunkTextures, leavesTextures=leavesTextures))
+            self.add(TexturedTree(shader=shader, position=(posx-length/2+length*random.random(),posy-width/2+width*random.random(),posz), trunkTextures=trunkTextures, leavesTextures=leavesTextures, light_dir=light_dir))
