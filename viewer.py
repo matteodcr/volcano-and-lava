@@ -14,8 +14,9 @@ from core import Shader, Mesh, Viewer, Node, load
 from transform import translate, identity, rotate, scale
 from texture import Terrain, TexturedSphere, TexturedCylinder, TexturedPlane, TexturedTree, ForestTerrain,Texture
 
-
-
+RED = 0.5
+GREEN = 0.5
+BLUE = 0.5
 class Axis(Mesh):
     """ Axis object useful for debugging coordinate frames """
     def __init__(self, shader):
@@ -62,7 +63,7 @@ def main():
     if len(sys.argv) < 2:
         viewer.add(Axis(shaderTexture))
         #viewer.add(TexturedCylinder(shader=shaderLight, texture=Texture("Textures/leaves.jpg"), light_dir=light_dir))
-        viewer.add(ForestTerrain(shader=shaderLight, terrainTexture=Texture("Textures/grass.png"),trunkTextures=Texture("Textures/tronc.jpg"), leavesTextures=Texture("Textures/leaves.jpg"), light_dir=light_dir))
+        viewer.add(ForestTerrain(shader=shaderTexture, terrainTexture=Texture("Textures/grass.png"),trunkTextures=Texture("Textures/tronc.jpg"), leavesTextures=Texture("Textures/leaves.jpg"), light_dir=light_dir))
         print('Usage:\n\t%s [3dfile]*\n\n3dfile\t\t the filename of a model in'
               ' format supported by assimp.' % (sys.argv[0],))
 
