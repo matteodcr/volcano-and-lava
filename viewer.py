@@ -13,7 +13,7 @@ import glfw  # lean window system wrapper for OpenGL
 from core import Shader, Mesh, Viewer, Node, load
 from skybox import SkyBox
 from transform import translate, identity, rotate, scale
-from texture import Terrain, TexturedSphere, TexturedCylinder, TexturedPlane, TexturedTree, ForestTerrain, Texture
+from texture import Terrain, TexturedSphere, TexturedCylinder, TexturedPlane, TexturedTree, ForestTerrain, Texture, LakeTerrain
 
 
 class Axis(Mesh):
@@ -57,6 +57,12 @@ def main():
     shaderLight = Shader("Shaders/phong.vert", "Shaders/phong.frag")
     skyboxShader = Shader("Shaders/skybox.vert", "Shaders/skybox.frag")
     shaderNormals = Shader("Shaders/normalviz.vert", "Shaders/normalviz.frag", "Shaders/normalviz.geom")
+    
+    #Textures
+    trunk = Texture("Textures/tronc.jpg")
+    leaves = Texture("Textures/leaves.jpg")
+    grass = Texture("Textures/grass.png")
+    water = Texture("Textures/water.jpg")
 
     light_dir = (1, -1, 1)
 
@@ -65,12 +71,10 @@ def main():
     if len(sys.argv) < 2:
         viewer.add(Axis(shaderTexture))
         viewer.add(SkyBox(skyboxShader, "Textures/skybox/"))
-        viewer.add(ForestTerrain(position=(0,-1,0), shader=shaderLight, terrainTexture=Texture("Textures/grass.png"),trunkTextures=Texture("Textures/tronc.jpg"),leavesTextures=Texture("Textures/leaves.jpg"), light_dir=light_dir))
-        viewer.add(ForestTerrain(position=(0,-1,0), shader=shaderNormals, terrainTexture=Texture("Textures/grass.png"),trunkTextures=Texture("Textures/tronc.jpg"),leavesTextures=Texture("Textures/leaves.jpg"), light_dir=light_dir))
-        #viewer.add(Terrain(shader=shaderLight, texture=Texture("Textures/grass.png"), light_dir=light_dir))
-        #viewer.add(Terrain(shader=shaderNormals, texture=Texture("Textures/grass.png"), light_dir=light_dir))
-        #viewer.add(TexturedTree(shader=shaderLight, position=(1,0,0), leavesTextures=Texture("Textures/leaves.jpg"), trunkTextures=Texture("Textures/tronc.jpg"), light_dir=light_dir))
-        #viewer.add(TexturedTree(shader=shaderNormals, position=(1,0,0), leavesTextures=Texture("Textures/leaves.jpg"), trunkTextures=Texture("Textures/tronc.jpg"), light_dir=light_dir))
+        #viewer.add(ForestTerrain(position=(0,-1,0), shader=shaderLight, terrainTexture=grass,trunkTextures=trunk,leavesTextures=leaves, light_dir=light_dir))
+        #viewer.add(Terrain(shader=shaderLight, texture=grass, light_dir=light_dir))
+        #viewer.add(TexturedTree(shader=shaderLight, position=(1,0,0), leavesTextures=leaves, trunkTextures=trunk, light_dir=light_dir))
+        viewer.add(LakeTerrain(shader=shaderLight, light_dir=light_dir, terrainTexture=grass, waterTextures=water, leavesTextures=leaves, trunkTextures=trunk))
         print('Usage:\n\t%s [3dfile]*\n\n3dfile\t\t the filename of a model in'
               ' format supported by assimp.' % (sys.argv[0],))
 
