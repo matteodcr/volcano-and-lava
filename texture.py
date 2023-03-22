@@ -57,6 +57,25 @@ class Textured(Node):
 
 # -------------- Textured Objects ---------------------------------
 
+def calcNormals(vertices, index):
+    vertices = np.array(vertices, np.float32)
+    index = np.array(index, np.uint32)
+    normals = np.zeros_like(vertices)
+    
+    (index_size,) = index.shape
+    
+    for k in range(0, index_size, 3):
+             # Calculate triangle normal
+            v1, v2, v3 = vertices[index[k]], vertices[index[k+1]], vertices[index[k+2]]
+            tri_normal = np.cross(v2 - v1, v3 - v1)
+            # Add triangle normal to vertex normals
+            normals[index[k]] += tri_normal
+            normals[index[k+1]] += tri_normal
+            normals[index[k+2]] += tri_normal
+
+    normals = np.array([n/ np.sqrt(np.sum(n ** 2)) for n in normals])
+    return (normals, vertices, index)
+
 class TexturedSphere(Textured):
     """ Procedural textured sphere """
 
@@ -64,7 +83,6 @@ class TexturedSphere(Textured):
     def __init__(self, shader, texture, position=(0, 0, 0), r=1, stacks=10, sectors=10, light_dir=None, shinyness=2):
         # setup plane mesh to be textured
         vertices = ()
-        normals = ()
         tex_coord = ()
 
         lengthInv = 1.0 / r
@@ -83,14 +101,9 @@ class TexturedSphere(Textured):
                 y = xy * np.sin(sectorAngle)
                 vertices = vertices + ((x, z, y),)
                 tex_coord += ((i / stacks, j / sectors),)
-                # normalized vertex normal (nx, ny, nz)
-                nx = x * lengthInv
-                ny = y * lengthInv
-                nz = z * lengthInv
-                normals = normals + ((nx, nz, ny),)
-        scaled = np.array(vertices, np.float32) + np.array(position, np.float32)
+        vertices = np.array(vertices, np.float32)+np.array(position, np.float32)
 
-        indices = ()
+        index = ()
         for i in range(stacks):
             k1 = i * (sectors + 1)
             k2 = k1 + sectors + 1
@@ -98,16 +111,17 @@ class TexturedSphere(Textured):
 
                 # 2 triangles per sector excluding first and last stacks
                 if (i != 0):
-                    indices = indices + ((k1, k1 + 1, k2),)
+                    index = index + (k1, k1 + 1, k2)
 
                 if (i != (stacks - 1)):
-                    indices = indices + ((k1 + 1, k2 + 1, k2),)
+                    index = index + (k1 + 1, k2 + 1, k2)
 
                 k1 = k1 + 1
                 k2 = k2 + 1
-        indices = np.array(indices, np.uint32)
-        mesh = Mesh(shader, attributes=dict(position=scaled, tex_coord=np.array(tex_coord), normal=np.array(normals)),
-                    index=indices, s=shinyness, light_dir=light_dir)
+        
+        (normals, vertices, index) = calcNormals(vertices, index)
+        mesh = Mesh(shader, attributes=dict(position=vertices, tex_coord=np.array(tex_coord), normal=normals),
+                    index=index, s=shinyness, light_dir=light_dir)
 
         # setup & upload texture to GPU, bind it to shader name 'diffuse_map'
         super().__init__(mesh, diffuse_map=texture)
@@ -117,37 +131,25 @@ class Terrain(Textured):
     """ Procedural textured terrain """
 
     def __init__(self, shader, texture, size=(100, 100), position=(0, -1, 0), light_dir=None, shinyness=2):
-        (posx, posz, posy) = position
         (x, y) = size
         self.heatMap = np.random.random(size)
         # setup plane mesh to be textured
-        base_coords = ()
+        vertices = ()
         tex_coord = ()
         for i in range(x):
             for j in range(y):
-                base_coords = base_coords + ((i - x / 2 + posx, posz + self.heatMap[i][j] / 2, j - y / 2 + posy),)
+                vertices = vertices + ((i - x / 2, self.heatMap[i][j] / 2, j - y / 2),)
                 tex_coord += ((i % 2, j % 2),)
-        scaled = np.array(base_coords, np.float32)
+        vertices = np.array(vertices, np.float32)+np.array(position, np.float32)
 
-        indices = ()
-        normals = np.zeros_like(scaled)
+        index = ()
         for k in range(y, x * y-1):
             if((k+1)%y!=0):
-                indices = indices + (k, k + 1 - y, k + 1, k, k - y, k + 1 - y)
+                index = index + (k, k + 1 - y, k + 1, k, k - y, k + 1 - y)
 
-                # Calculate triangle normal
-                v1, v2, v3 = scaled[k - y], scaled[k + 1], scaled[k + 1 - y]
-                tri_normal = np.cross(v2 - v1, v3 - v1)
-                # Add triangle normal to vertex normals
-                normals[k - x] += tri_normal
-                normals[k + 1] += tri_normal
-                normals[k + 1 - x] += tri_normal
-
-        # Normalize vertex normals
-        normals = np.array([np.divide(n, np.sqrt(np.sum(n ** 2))) for n in normals])
-        indices = np.array(indices, np.uint32)
-        mesh = Mesh(shader, attributes=dict(position=scaled, tex_coord=np.array(tex_coord), normal=normals),
-                    index=indices, s=shinyness, light_dir=light_dir)
+        (normals, vertices, index) = calcNormals(vertices, index)
+        mesh = Mesh(shader, attributes=dict(position=vertices, tex_coord=np.array(tex_coord), normal=normals),
+                    index=index, s=shinyness, light_dir=light_dir)
 
         # setup & upload texture to GPU, bind it to shader name 'diffuse_map'
         super().__init__(mesh, diffuse_map=texture)
@@ -157,16 +159,15 @@ class TexturedPlane(Textured):
     """ Simple first textured object """
 
     def __init__(self, shader, texture, position=(0, 0, 0), light_dir=None, shinyness=2):
-        (posx, posz, posy) = position
         # setup plane mesh to be textured
-        base_coords = ((-1 + posx, posz, -1 + posy), (1 + posx, posz, -1 + posy), (1 + posx, posz, 1 + posy),
-                       (-1 + posx, posz, 1 + posy))
+        vertices = ((-1 , 0, -1), (1 , 0, -1), (1, 0, 1 ),
+                       (-1, 0, 1 ))
         tex_coord = ((0, 0), (1, 0), (1, 1), (0, 1))
-        scaled = 100 * np.array(base_coords, np.float32)
-        indices = np.array((0, 2, 1, 0, 3, 2), np.uint32)
-        normals = np.array(((0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0)))
-        mesh = Mesh(shader, attributes=dict(position=scaled, tex_coord=np.array(tex_coord), normal=normals),
-                    index=indices, s=shinyness, light_dir=light_dir)
+        vertices = np.array(vertices, np.float32)+np.array(position, np.float32)
+        index = np.array((0, 2, 1, 0, 3, 2), np.uint32)
+        (normals, vertices, index) = calcNormals(vertices, index)
+        mesh = Mesh(shader, attributes=dict(position=vertices, tex_coord=np.array(tex_coord), normal=normals),
+                    index=index, s=shinyness, light_dir=light_dir)
 
         # setup & upload texture to GPU, bind it to shader name 'diffuse_map'
         super().__init__(mesh, diffuse_map=texture)
@@ -183,26 +184,21 @@ class TexturedCylinder(Textured):
         # setup plane mesh to be textured
         vertices = ()
         tex_coord = ()
-        normals = ()
         vertices = vertices + ((0, self.height / 2, 0),)
         tex_coord += ((0, 0),)
-        normals += ((0, 1, 0),)
         tex_i = 0
         for x in np.arange(0, 2 * np.pi, 2 * np.pi / self.divisions):
             vertices = vertices + ((self.ray * np.cos(x), self.height / 2, self.ray * np.sin(x)),)
             tex_coord += ((tex_i / divisions, 0),)
-            normals += ((np.cos(x), 0, np.sin(x)),)
             tex_i += 1
         vertices = vertices + ((0, -self.height / 2, 0),)
         tex_coord += ((1, 1),)
-        normals += ((0, -1, 0),)
         tex_i = 0
         for x in np.arange(0, 2 * np.pi, 2 * np.pi / self.divisions):
             vertices = vertices + ((self.ray * np.cos(x), -self.height / 2, self.ray * np.sin(x)),)
             tex_coord += ((tex_i / divisions, 1),)
-            normals += ((np.cos(x), 0, np.sin(x)),)
             tex_i += 1
-        scaled = np.array(vertices, np.float32) + np.array(position, np.float32)
+        vertices = np.array(vertices, np.float32) + np.array(position, np.float32)
 
         index = ()
         # top face
@@ -217,10 +213,10 @@ class TexturedCylinder(Textured):
         for x in range(1, self.divisions, 1):
             index = index + (x, x + 1, self.divisions + x + 1, x + 1, self.divisions + x + 2, self.divisions + x + 1)
         index = index + (self.divisions, 1, self.divisions * 2 + 1, 1, self.divisions + 2, self.divisions * 2 + 1)
-        indices = np.array(index, np.uint32)
 
-        mesh = Mesh(shader, attributes=dict(position=scaled, tex_coord=np.array(tex_coord), normal=np.array(normals)),
-                    index=indices, s=shinyness, light_dir=light_dir)
+        (normals, vertices, index) = calcNormals(vertices, index)
+        mesh = Mesh(shader, attributes=dict(position=vertices, tex_coord=np.array(tex_coord), normal=normals),
+                    index=index, s=shinyness, light_dir=light_dir)
 
         # setup & upload texture to GPU, bind it to shader name 'diffuse_map'
         super().__init__(mesh, diffuse_map=texture)
@@ -232,7 +228,6 @@ class TexturedTree(Node):
         random.seed()
 
         (x, z, y) = position
-        self.position = position
         trunk_height = 5 + random.random()
         main_leaves_size = 2 + random.random()
 
@@ -258,7 +253,8 @@ class ForestTerrain(Node):
         self.add(Terrain(shader=shader, size=size, texture=terrainTexture, position=position, light_dir=light_dir))
         (length, width) = size
         (posx, posz, posy) = position
-        trees = random.randint(0, (length / 10) * (width / 10))
+        #trees = random.randint(0, (length / 10) * (width / 10))
+        trees = 3
         for t in range(trees):
             self.add(TexturedTree(shader=shader, position=(
             posx - length / 2 + length * random.random(), posz, posy - width / 2 + width * random.random()),
