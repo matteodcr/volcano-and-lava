@@ -56,8 +56,9 @@ def main():
     shaderTexture = Shader("Shaders/texture.vert", "Shaders/texture.frag")
     shaderLight = Shader("Shaders/phong.vert", "Shaders/phong.frag")
     skyboxShader = Shader("Shaders/skybox.vert", "Shaders/skybox.frag")
+    shaderNormals = Shader("Shaders/normalviz.vert", "Shaders/normalviz.frag", "Shaders/normalviz.geom")
 
-    light_dir = (1, 1, 1)
+    light_dir = (1, -1, 1)
 
     # place instances of our basic objects
     viewer.add(*[mesh for file in sys.argv[1:] for mesh in load(file, shaderLight, light_dir=light_dir)])
@@ -65,6 +66,11 @@ def main():
         viewer.add(Axis(shaderTexture))
         viewer.add(SkyBox(skyboxShader, "Textures/skybox/"))
         viewer.add(ForestTerrain(position=(0,-1,0), shader=shaderLight, terrainTexture=Texture("Textures/grass.png"),trunkTextures=Texture("Textures/tronc.jpg"),leavesTextures=Texture("Textures/leaves.jpg"), light_dir=light_dir))
+        viewer.add(ForestTerrain(position=(0,-1,0), shader=shaderNormals, terrainTexture=Texture("Textures/grass.png"),trunkTextures=Texture("Textures/tronc.jpg"),leavesTextures=Texture("Textures/leaves.jpg"), light_dir=light_dir))
+        #viewer.add(Terrain(shader=shaderLight, texture=Texture("Textures/grass.png"), light_dir=light_dir))
+        #viewer.add(Terrain(shader=shaderNormals, texture=Texture("Textures/grass.png"), light_dir=light_dir))
+        #viewer.add(TexturedTree(shader=shaderLight, position=(1,0,0), leavesTextures=Texture("Textures/leaves.jpg"), trunkTextures=Texture("Textures/tronc.jpg"), light_dir=light_dir))
+        #viewer.add(TexturedTree(shader=shaderNormals, position=(1,0,0), leavesTextures=Texture("Textures/leaves.jpg"), trunkTextures=Texture("Textures/tronc.jpg"), light_dir=light_dir))
         print('Usage:\n\t%s [3dfile]*\n\n3dfile\t\t the filename of a model in'
               ' format supported by assimp.' % (sys.argv[0],))
 
