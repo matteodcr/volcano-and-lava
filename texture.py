@@ -2,6 +2,7 @@ from itertools import cycle
 import OpenGL.GL as GL  # standard Python OpenGL wrapper
 from PIL import Image  # load texture maps
 import glfw
+from matplotlib import pyplot as plt
 import numpy as np  # all matrix manipulations & OpenGL args
 from core import Mesh, Node, Texture
 import random
@@ -132,13 +133,13 @@ class Terrain(Textured):
 
     def __init__(self, shader, texture, size=(100, 100), position=(0, -1, 0), light_dir=None, shinyness=2):
         (x, y) = size
-        self.heatMap = np.random.random(size)
+        self.heightMap = np.random.random(size)
         # setup plane mesh to be textured
         vertices = ()
         tex_coord = ()
         for i in range(x):
             for j in range(y):
-                vertices = vertices + ((i - x / 2, self.heatMap[i][j] / 2, j - y / 2),)
+                vertices = vertices + ((i - x / 2, self.heightMap[i][j] / 2, j - y / 2),)
                 tex_coord += ((i % 2, j % 2),)
         vertices = np.array(vertices, np.float32)+np.array(position, np.float32)
 
@@ -158,10 +159,10 @@ class Terrain(Textured):
 class TexturedPlane(Textured):
     """ Simple first textured object """
 
-    def __init__(self, shader, texture, position=(0, 0, 0), light_dir=None, shinyness=2):
+    def __init__(self, shader, texture, position=(0, 0, 0), light_dir=None, shinyness=2, length=2, width=2):
         # setup plane mesh to be textured
-        vertices = ((-1 , 0, -1), (1 , 0, -1), (1, 0, 1 ),
-                       (-1, 0, 1 ))
+        vertices = ((-length/2 , 0, -width/2), (length/2 , 0, -width/2), (length/2, 0, width/2 ),
+                       (-length/2, 0, width/2 ))
         tex_coord = ((0, 0), (1, 0), (1, 1), (0, 1))
         vertices = np.array(vertices, np.float32)+np.array(position, np.float32)
         index = np.array((0, 2, 1, 0, 3, 2), np.uint32)
@@ -253,8 +254,7 @@ class ForestTerrain(Node):
         self.add(Terrain(shader=shader, size=size, texture=terrainTexture, position=position, light_dir=light_dir))
         (length, width) = size
         (posx, posz, posy) = position
-        #trees = random.randint(0, (length / 10) * (width / 10))
-        trees = 3
+        trees = random.randint(0, (length / 10) * (width / 10))
         for t in range(trees):
             self.add(TexturedTree(shader=shader, position=(
             posx - length / 2 + length * random.random(), posz, posy - width / 2 + width * random.random()),
@@ -275,3 +275,120 @@ class TexturedCube(Textured):
             uniforms[name] = index
         self.drawable.draw(primitives=primitives, **uniforms)
         GL.glDepthFunc(GL.GL_LESS)
+
+def nerbyPoints(point):
+    (x,y) = point
+    return [(x+1,y), (x-1,y), (x,y+1), (x,y-1)]
+
+class PreLakeTerrain(Textured):
+    def __init__(self, shader, texture, size=(100, 100), position=(0, -1, 0), light_dir=None, shinyness=2, depth=4, heightmap=np.random.random((100,100))):
+        (_,posz,_) = position
+        (x, y) = size
+        self.heightMap = heightmap
+        
+        #------------ creating lake -----------------
+        (centerx, centery) = (random.randint(0, x), random.randint(0, y)) #center of lake
+        lakePoints = ()
+        toProcess = [(centerx,centery)]
+        expandchance = 50   # % of chance for each vertex to expand to one direction
+        while len(toProcess) != 0 :
+            (x_,y_) = toProcess.pop(0)
+            for element in nerbyPoints((x_,y_)):
+                (a,b) = element
+                if lakePoints.count(element)==0 and toProcess.count(element)==0 :
+                    if(a>=1 and a<x-1 and b>=1 and b<y-1):  # don't take vertices on the edges
+                        if(random.randint(0, 100)<expandchance):
+                            toProcess.append(element)
+                            for e in nerbyPoints(element): #traitement des pics résiduels
+                                [e1,e2,e3,e4] = nerbyPoints(e)
+                                if(lakePoints.count(e1)+lakePoints.count(e2)+lakePoints.count(e3)+lakePoints.count(e4)) :
+                                    lakePoints += (e,)
+            lakePoints+=((x_,y_),)
+        self.lake = lakePoints
+        for (x_,y_) in lakePoints :
+            self.heightMap[x_][y_] -= depth
+        
+        # ------------------ creating terrain ------------------
+        vertices = ()
+        tex_coord = ()
+        for i in range(x):
+            for j in range(y):
+                vertices = vertices + ((i - x / 2, self.heightMap[i][j] / 2, j - y / 2),)
+                tex_coord += ((i % 2, j % 2),)
+        vertices = np.array(vertices, np.float32)+np.array(position, np.float32)
+        index = ()
+        for k in range(y, x * y-1):
+            if((k+1)%y!=0):
+                index = index + (k, k + 1 - y, k + 1, k, k - y, k + 1 - y)
+
+        (normals, vertices, index) = calcNormals(vertices, index)
+        self.vertices = vertices
+        mesh = Mesh(shader, attributes=dict(position=vertices, tex_coord=np.array(tex_coord), normal=normals),
+                    index=index, s=shinyness, light_dir=light_dir)
+        
+        # ----------------- processing lake coords ---------------
+        waterVertex = ()
+        for element in self.lake :
+            (elx,ely) = element
+            waterVertex += ((elx,posz+5,ely),)
+            for e in nerbyPoints(element):
+                if self.lake.count(e)==0 and waterVertex.count(e)==0:
+                    (ex,ey) = e
+                    waterVertex += ((ex,posz+5,ey),)
+        waterVertex = np.array(waterVertex, np.float32)
+        self.lakeAndNerby = waterVertex
+        minx = waterVertex[0][0]
+        miny = waterVertex[0][2]
+        maxx = waterVertex[0][0]
+        maxy = waterVertex[0][2]
+        for element in waterVertex:
+            if(element[0]>maxx):
+                maxx = element[0]
+            if(element[0]<minx):
+                minx = element[0]
+            if(element[2]>maxy):
+                maxy = element[2]
+            if(element[2]<miny):
+                miny = element[2]
+        self.extremums = (minx-x/2,maxx-x/2,miny-y/2,maxy-y/2)
+        # setup & upload texture to GPU, bind it to shader name 'diffuse_map'
+        super().__init__(mesh, diffuse_map=texture)
+        
+    def getExtremums(self) :
+        """@returns (minx, maxx, miny, maxy)"""
+        return self.extremums
+    def getLakeCoords(self) :
+        """@returns a np array of float32 : [[x,z,y],...]"""
+        return self.lakeAndNerby
+    def getTerrainCoords(self) :
+        """@returns a np array of float32 : [[x,z,y],...]"""
+        return self.vertices
+        
+class LakeTerrain(Node):
+    def __init__(self, shader, terrainTexture, waterTextures, leavesTextures, trunkTextures, size=(100, 100), position=(0, 0, 0),
+                 light_dir=None):
+        super().__init__()
+        terrain = PreLakeTerrain(shader=shader, size=size, texture=terrainTexture, position=position, light_dir=light_dir)
+        self.add(terrain)
+        (minx,maxx,miny,maxy) = terrain.getExtremums()
+        (x,z,y)=position
+        self.add(TexturedPlane(shader=shader, light_dir=light_dir, texture=waterTextures, length=maxx-minx, width=maxy-miny, position=(x+minx+(maxx-minx)/2,z,y+miny+(maxy-miny)/2)))
+        coordTerrain = terrain.getTerrainCoords()
+        coordLake = terrain.getLakeCoords()
+        (length, width) = size
+        trees = random.randint(0, (length / 10) * (width / 10))
+        for t in range(trees):
+            tposition = self.getRandomPoint(coordTerrain)
+            while self.contains(coordLake,np.array(tposition,np.float32)):
+                tposition = self.getRandomPoint(coordTerrain)
+            self.add(TexturedTree(shader=shader, position=tposition,
+                                  trunkTextures=trunkTextures, leavesTextures=leavesTextures, light_dir=light_dir))
+    def contains(self, coordLake, element):
+        [a,b,c] = element
+        for [x,z,y] in coordLake:
+            if a==x and b==z and c==y :
+                return True
+        return False
+    def getRandomPoint(self, coordTerrain):
+        [x,z,y] = coordTerrain[random.randint(0,len(coordTerrain)-1)]
+        return (x,z,y)
