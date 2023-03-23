@@ -13,7 +13,7 @@ import glfw  # lean window system wrapper for OpenGL
 from core import Shader, Mesh, Viewer, Node, load
 from skybox import SkyBox
 from transform import translate, identity, rotate, scale
-from texture import Terrain, TexturedSphere, TexturedCylinder, TexturedPlane, TexturedTree, ForestTerrain, Texture, LakeTerrain
+from texture import Terrain, TexturedSphere, TexturedCylinder, TexturedPlane, TexturedTree, ForestTerrain, Texture, LakeForestTerrain
 
 
 class Axis(Mesh):
@@ -74,7 +74,7 @@ def main():
         #viewer.add(ForestTerrain(position=(0,-1,0), shader=shaderLight, terrainTexture=grass,trunkTextures=trunk,leavesTextures=leaves, light_dir=light_dir))
         #viewer.add(Terrain(shader=shaderLight, texture=grass, light_dir=light_dir))
         #viewer.add(TexturedTree(shader=shaderLight, position=(1,0,0), leavesTextures=leaves, trunkTextures=trunk, light_dir=light_dir))
-        viewer.add(LakeTerrain(shader=shaderLight, light_dir=light_dir, terrainTexture=grass, waterTextures=water, leavesTextures=leaves, trunkTextures=trunk))
+        viewer.add(LakeForestTerrain(shader=shaderLight, position = (5,2,-3), size=(50,200), light_dir=light_dir, terrainTexture=grass, waterTextures=water, leavesTextures=leaves, trunkTextures=trunk))
         print('Usage:\n\t%s [3dfile]*\n\n3dfile\t\t the filename of a model in'
               ' format supported by assimp.' % (sys.argv[0],))
 
