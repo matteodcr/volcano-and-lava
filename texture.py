@@ -121,6 +121,7 @@ class TexturedSphere(Textured):
                 k2 = k2 + 1
         
         (normals, vertices, index) = calcNormals(vertices, index)
+        self.vertices = vertices
         mesh = Mesh(shader, attributes=dict(position=vertices, tex_coord=np.array(tex_coord), normal=normals),
                     index=index, s=shinyness, light_dir=light_dir)
 
@@ -235,15 +236,14 @@ class TexturedTree(Node):
         self.add(
             TexturedCylinder(shader, position=(x, z + trunk_height / 2, y), height=trunk_height, texture=trunkTextures,
                              light_dir=light_dir))
-        self.add(TexturedSphere(shader, position=(x, z + trunk_height, y), r=main_leaves_size, texture=leavesTextures,
-                                light_dir=light_dir))
-
+        mainLeaves = TexturedSphere(shader, position=(x, z + trunk_height, y), r=main_leaves_size, texture=leavesTextures,
+                                light_dir=light_dir)
+        self.add(mainLeaves)
+        mainLeavesVertices = mainLeaves.vertices
         for i in range(random.randint(0, 3)):
-            x_ = x + (random.randint(0, 1) * 2 - 1) * random.random() * main_leaves_size
-            y_ = y + (random.randint(0, 1) * 2 - 1) * random.random() * (main_leaves_size - np.abs(x_ - x))
-            z_ = z + (random.randint(0, 1) * 2 - 1) * (main_leaves_size - np.abs(x_ - x) - np.abs(y_ - y))
+            [x_,z_,y_] = mainLeavesVertices[random.randint(0,len(mainLeavesVertices)-1)]
             self.add(
-                TexturedSphere(shader, position=(x_, z_ + trunk_height, y_), r=random.random(), texture=leavesTextures,
+                TexturedSphere(shader, position=(x_, z_, y_), r=random.random(), texture=leavesTextures,
                                light_dir=light_dir))
 
 
@@ -343,7 +343,7 @@ class Lake():
         return (TexturedPlane(shader=self.shader, light_dir=self.light_dir, texture=self.waterTexture, length=maxx-minx, width=maxy-miny, position=(-1+x+minx+(maxx-minx)/2,z,-1+y+miny+(maxy-miny)/2)))
         
 class LakeTerrain(Textured):
-    def __init__(self, shader, textureTerrain, textureWater, size=(100, 100), position=(0, -1, 0), light_dir=None, shinyness=2, depth=4, heightmap=None):
+    def __init__(self, shader, textureTerrain, textureWater, size=(100, 100), position=(0, -1, 0), light_dir=None, shinyness=2, depth=4, heightmap=None, lakes=2):
         if(heightmap==None):
             self.heightMap = np.random.random(size)
         else :
@@ -356,42 +356,39 @@ class LakeTerrain(Textured):
         self.shader = shader
         self.shinyness = shinyness
         self.lakes = []
+        self.waters = []
+        for i in range(lakes):
+            lake = Lake(self.shader, self.size, self.textureWater, self.light_dir, depth=self.depth)
+            self.lakes.append(lake)
+            self.waters.append(lake.addTo(self))
         
         # ------------------ creating terrain ------------------
-        mesh = self.updateVertices()
+        (x, y) = self.size
+        vertices = np.zeros((x*y, 3), np.float32)
+        tex_coord = np.zeros((x*y, 2), np.float32)
+        for i in range(x):
+            for j in range(y):
+                vertices[y*i+j] = [i - x / 2, self.heightMap[i][j] / 2, j - y / 2]
+                tex_coord[y*i+j] = [i % 2, j % 2]
+        vertices = vertices+np.array(self.position, np.float32)
+        index = np.zeros((6*(x*y-1-y)), np.float32)
+        i = 0
+        for k in range(y, x * y-1):
+            if((k+1)%y!=0):
+                index[i] = k
+                index[i+1] = k+1-y
+                index[i+2] = k+1
+                index[i+3] = k
+                index[i+4] = k-y
+                index[i+5] = k+1-y
+                i += 6
+        (normals, vertices, index) = calcNormals(vertices, index)
+        self.vertices = vertices
+        mesh = Mesh(self.shader, attributes=dict(position=vertices, tex_coord=tex_coord, normal=normals),
+                    index=index, s=self.shinyness, light_dir=self.light_dir)
         
         # setup & upload texture to GPU, bind it to shader name 'diffuse_map'
         super().__init__(mesh, diffuse_map=textureTerrain)
-    
-    def updateVertices(self):
-        """Updates vertices of terrain after adding a lake"""
-        (x, y) = self.size
-        vertices = ()
-        tex_coord = ()
-        for i in range(x):
-            for j in range(y):
-                vertices = vertices + ((i - x / 2, self.heightMap[i][j] / 2, j - y / 2),)
-                tex_coord += ((i % 2, j % 2),)
-        vertices = np.array(vertices, np.float32)+np.array(self.position, np.float32)
-        index = ()
-        for k in range(y, x * y-1):
-            if((k+1)%y!=0):
-                index = index + (k, k + 1 - y, k + 1, k, k - y, k + 1 - y)
-
-        (normals, vertices, index) = calcNormals(vertices, index)
-        self.vertices = vertices
-        mesh = Mesh(self.shader, attributes=dict(position=vertices, tex_coord=np.array(tex_coord), normal=normals),
-                    index=index, s=self.shinyness, light_dir=self.light_dir)
-        self.drawable=mesh
-        return mesh
-    
-    def addLake(self):
-        """Adds a lake to the terrain and returns the water layer Texture"""
-        lake = Lake(self.shader, self.size, self.textureWater, self.light_dir, depth=self.depth)
-        self.lakes.append(lake)
-        water = lake.addTo(self)
-        self.updateVertices()
-        return water
     
     def getRandomPointOnGrass(self):
         [x,z,y] = self.vertices[random.randint(0,len(self.vertices)-1)]
@@ -413,9 +410,9 @@ class LakeForestTerrain(Node):
                  light_dir=None):
         super().__init__()
         terrain = LakeTerrain(shader=shader, size=size, textureTerrain=terrainTexture, textureWater=waterTextures, position=position, light_dir=light_dir)
-        self.add(terrain.addLake())
-        self.add(terrain.addLake())
         self.add(terrain)
+        for water in terrain.waters:
+            self.add(water)
         (length, width) = size
         trees = random.randint(0, (length / 10) * (width / 10))
         for t in range(trees):
