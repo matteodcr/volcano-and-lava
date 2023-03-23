@@ -280,14 +280,18 @@ def nerbyPoints(point):
     (x,y) = point
     return [(x+1,y), (x-1,y), (x,y+1), (x,y-1)]
 
-class PreLakeTerrain(Textured):
-    def __init__(self, shader, texture, size=(100, 100), position=(0, -1, 0), light_dir=None, shinyness=2, depth=4, heightmap=np.random.random((100,100))):
-        (_,posz,_) = position
-        (x, y) = size
-        self.heightMap = heightmap
-        
+class Lake():
+    def __init__(self, shader, terrainSize, waterTexture, light_dir, position=None, depth=4):
+        (x, y) = terrainSize
+        if position==None:
+            (centerx, centery) = (random.randint(0, x), random.randint(0, y))
+        else:
+            (centerx, centery) = position
+        self.depth=depth
+        self.waterTexture = waterTexture
+        self.shader = shader
+        self.light_dir = light_dir
         #------------ creating lake -----------------
-        (centerx, centery) = (random.randint(0, x), random.randint(0, y)) #center of lake
         lakePoints = ()
         toProcess = [(centerx,centery)]
         expandchance = 50   # % of chance for each vertex to expand to one direction
@@ -304,18 +308,71 @@ class PreLakeTerrain(Textured):
                                 if(lakePoints.count(e1)+lakePoints.count(e2)+lakePoints.count(e3)+lakePoints.count(e4)) :
                                     lakePoints += (e,)
             lakePoints+=((x_,y_),)
-        self.lake = lakePoints
-        for (x_,y_) in lakePoints :
-            self.heightMap[x_][y_] -= depth
+        self.lakeDepths = lakePoints
+        waterVertex = ()
+        for element in lakePoints :
+            (elx,ely) = element
+            waterVertex += ((elx,ely),)
+            for e in nerbyPoints(element):
+                if lakePoints.count(e)==0 and waterVertex.count(e)==0:
+                    (ex,ey) = e
+                    waterVertex += ((ex,ey),)
+        waterVertex = np.array(waterVertex, np.float32)
+        self.lake = waterVertex
+        minx = waterVertex[0][0]
+        miny = waterVertex[0][1]
+        maxx = waterVertex[0][0]
+        maxy = waterVertex[0][1]
+        for element in waterVertex:
+            if(element[0]>maxx):
+                maxx = element[0]
+            if(element[0]<minx):
+                minx = element[0]
+            if(element[1]>maxy):
+                maxy = element[1]
+            if(element[1]<miny):
+                miny = element[1]
+        self.extremums = (minx-x/2,maxx-x/2,miny-y/2,maxy-y/2)
+        
+    def addTo(self, terrain):
+        """Adds this lake to the given terrain and returns the water layer Texture"""
+        for (x_,y_) in self.lakeDepths :
+            terrain.heightMap[x_-1][y_-1] -= self.depth
+        (minx,maxx,miny,maxy) = self.extremums
+        (x,z,y) = terrain.position
+        return (TexturedPlane(shader=self.shader, light_dir=self.light_dir, texture=self.waterTexture, length=maxx-minx, width=maxy-miny, position=(-1+x+minx+(maxx-minx)/2,z,-1+y+miny+(maxy-miny)/2)))
+        
+class LakeTerrain(Textured):
+    def __init__(self, shader, textureTerrain, textureWater, size=(100, 100), position=(0, -1, 0), light_dir=None, shinyness=2, depth=4, heightmap=None):
+        if(heightmap==None):
+            self.heightMap = np.random.random(size)
+        else :
+            self.heightMap = heightmap
+        self.position = position
+        self.size = size
+        self.textureWater = textureWater
+        self.light_dir = light_dir
+        self.depth = depth
+        self.shader = shader
+        self.shinyness = shinyness
+        self.lakes = []
         
         # ------------------ creating terrain ------------------
+        mesh = self.updateVertices()
+        
+        # setup & upload texture to GPU, bind it to shader name 'diffuse_map'
+        super().__init__(mesh, diffuse_map=textureTerrain)
+    
+    def updateVertices(self):
+        """Updates vertices of terrain after adding a lake"""
+        (x, y) = self.size
         vertices = ()
         tex_coord = ()
         for i in range(x):
             for j in range(y):
                 vertices = vertices + ((i - x / 2, self.heightMap[i][j] / 2, j - y / 2),)
                 tex_coord += ((i % 2, j % 2),)
-        vertices = np.array(vertices, np.float32)+np.array(position, np.float32)
+        vertices = np.array(vertices, np.float32)+np.array(self.position, np.float32)
         index = ()
         for k in range(y, x * y-1):
             if((k+1)%y!=0):
@@ -323,72 +380,44 @@ class PreLakeTerrain(Textured):
 
         (normals, vertices, index) = calcNormals(vertices, index)
         self.vertices = vertices
-        mesh = Mesh(shader, attributes=dict(position=vertices, tex_coord=np.array(tex_coord), normal=normals),
-                    index=index, s=shinyness, light_dir=light_dir)
+        mesh = Mesh(self.shader, attributes=dict(position=vertices, tex_coord=np.array(tex_coord), normal=normals),
+                    index=index, s=self.shinyness, light_dir=self.light_dir)
+        self.drawable=mesh
+        return mesh
+    
+    def addLake(self):
+        """Adds a lake to the terrain and returns the water layer Texture"""
+        lake = Lake(self.shader, self.size, self.textureWater, self.light_dir, depth=self.depth)
+        self.lakes.append(lake)
+        water = lake.addTo(self)
+        self.updateVertices()
+        return water
+    
+    def getRandomPointOnGrass(self):
+        [x,z,y] = self.vertices[random.randint(0,len(self.vertices)-1)]
+        for i in range(len(self.lakes)):
+            while self.contains(self.lakes[i].lake,[x,z,y]):
+                    [x,z,y] = self.vertices[random.randint(0,len(self.vertices)-1)]
+                    i=0
+        return (x,z,y)
+    
+    def contains(self, coordLake, element):
+        [a,b,c] = element
+        for [x,y] in coordLake:
+            if a==x and c==y :
+                return True
+        return False
         
-        # ----------------- processing lake coords ---------------
-        waterVertex = ()
-        for element in self.lake :
-            (elx,ely) = element
-            waterVertex += ((elx,posz+5,ely),)
-            for e in nerbyPoints(element):
-                if self.lake.count(e)==0 and waterVertex.count(e)==0:
-                    (ex,ey) = e
-                    waterVertex += ((ex,posz+5,ey),)
-        waterVertex = np.array(waterVertex, np.float32)
-        self.lakeAndNerby = waterVertex
-        minx = waterVertex[0][0]
-        miny = waterVertex[0][2]
-        maxx = waterVertex[0][0]
-        maxy = waterVertex[0][2]
-        for element in waterVertex:
-            if(element[0]>maxx):
-                maxx = element[0]
-            if(element[0]<minx):
-                minx = element[0]
-            if(element[2]>maxy):
-                maxy = element[2]
-            if(element[2]<miny):
-                miny = element[2]
-        self.extremums = (minx-x/2,maxx-x/2,miny-y/2,maxy-y/2)
-        # setup & upload texture to GPU, bind it to shader name 'diffuse_map'
-        super().__init__(mesh, diffuse_map=texture)
-        
-    def getExtremums(self) :
-        """@returns (minx, maxx, miny, maxy)"""
-        return self.extremums
-    def getLakeCoords(self) :
-        """@returns a np array of float32 : [[x,z,y],...]"""
-        return self.lakeAndNerby
-    def getTerrainCoords(self) :
-        """@returns a np array of float32 : [[x,z,y],...]"""
-        return self.vertices
-        
-class LakeTerrain(Node):
+class LakeForestTerrain(Node):
     def __init__(self, shader, terrainTexture, waterTextures, leavesTextures, trunkTextures, size=(100, 100), position=(0, 0, 0),
                  light_dir=None):
         super().__init__()
-        terrain = PreLakeTerrain(shader=shader, size=size, texture=terrainTexture, position=position, light_dir=light_dir)
+        terrain = LakeTerrain(shader=shader, size=size, textureTerrain=terrainTexture, textureWater=waterTextures, position=position, light_dir=light_dir)
+        self.add(terrain.addLake())
+        self.add(terrain.addLake())
         self.add(terrain)
-        (minx,maxx,miny,maxy) = terrain.getExtremums()
-        (x,z,y)=position
-        self.add(TexturedPlane(shader=shader, light_dir=light_dir, texture=waterTextures, length=maxx-minx, width=maxy-miny, position=(x+minx+(maxx-minx)/2,z,y+miny+(maxy-miny)/2)))
-        coordTerrain = terrain.getTerrainCoords()
-        coordLake = terrain.getLakeCoords()
         (length, width) = size
         trees = random.randint(0, (length / 10) * (width / 10))
         for t in range(trees):
-            tposition = self.getRandomPoint(coordTerrain)
-            while self.contains(coordLake,np.array(tposition,np.float32)):
-                tposition = self.getRandomPoint(coordTerrain)
-            self.add(TexturedTree(shader=shader, position=tposition,
+            self.add(TexturedTree(shader=shader, position=terrain.getRandomPointOnGrass(),
                                   trunkTextures=trunkTextures, leavesTextures=leavesTextures, light_dir=light_dir))
-    def contains(self, coordLake, element):
-        [a,b,c] = element
-        for [x,z,y] in coordLake:
-            if a==x and b==z and c==y :
-                return True
-        return False
-    def getRandomPoint(self, coordTerrain):
-        [x,z,y] = coordTerrain[random.randint(0,len(coordTerrain)-1)]
-        return (x,z,y)
