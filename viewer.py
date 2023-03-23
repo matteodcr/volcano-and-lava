@@ -50,6 +50,7 @@ class Triangle(Mesh):
 def main():
     """ create a window, add scene objects, then run rendering loop """
     viewer = Viewer()
+    
 
     # default color shader
     shader = Shader("Shaders/color.vert", "Shaders/color.frag")
@@ -74,7 +75,7 @@ def main():
         #viewer.add(ForestTerrain(position=(0,-1,0), shader=shaderLight, terrainTexture=grass,trunkTextures=trunk,leavesTextures=leaves, light_dir=light_dir))
         #viewer.add(Terrain(shader=shaderLight, texture=grass, light_dir=light_dir))
         #viewer.add(TexturedTree(shader=shaderLight, position=(1,0,0), leavesTextures=leaves, trunkTextures=trunk, light_dir=light_dir))
-        viewer.add(LakeForestTerrain(shader=shaderLight, position = (5,2,-3), size=(50,200), light_dir=light_dir, terrainTexture=grass, waterTextures=water, leavesTextures=leaves, trunkTextures=trunk))
+        viewer.add(LakeForestTerrain(shader=shaderLight, position = (5,2,-3), size=(100,100), light_dir=light_dir, terrainTexture=grass, waterTextures=water, leavesTextures=leaves, trunkTextures=trunk))
         print('Usage:\n\t%s [3dfile]*\n\n3dfile\t\t the filename of a model in'
               ' format supported by assimp.' % (sys.argv[0],))
 
