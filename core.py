@@ -195,6 +195,13 @@ class Node:
         """ Dispatch keyboard events to children with key handler """
         for child in (c for c in self.children if hasattr(c, 'key_handler')):
             child.key_handler(key)
+    
+    def updateTrackball(self, old, mouse, win):
+        if hasattr(self, 'trackball'): #for particles
+            self.trackball.drag(old, mouse, glfw.get_window_size(win))
+        for child in self.children:
+            if isinstance(child, Node):
+                child.updateTrackball(old, mouse, win)
 
 
 # -------------- 3D resource loader -------------------------------------------
@@ -420,14 +427,7 @@ class Viewer(Node):
         old = self.mouse
         self.mouse = (xpos, glfw.get_window_size(win)[1] - ypos)
         if glfw.get_mouse_button(win, glfw.MOUSE_BUTTON_LEFT):
-            self.trackball.drag(old, self.mouse, glfw.get_window_size(win))
-            for child in self.children:
-                if hasattr(child, 'trackball'): #for particles
-                    child.trackball.drag(old, self.mouse, glfw.get_window_size(win))
-                elif hasattr(child, 'children'): # for KeyFrameControlNode
-                    for c in child.children:
-                        if hasattr(c, 'trackball'):
-                            c.trackball.drag(old, self.mouse, glfw.get_window_size(win))
+            self.updateTrackball(old, self.mouse, win)
         if glfw.get_mouse_button(win, glfw.MOUSE_BUTTON_RIGHT):
             self.trackball.pan(old, self.mouse)
 
