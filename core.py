@@ -1,13 +1,13 @@
 # Python built-in modules
-import os                           # os function, i.e. checking file status
-from itertools import cycle         # allows easy circular choice list
-import atexit                       # launch a function at exit
+import os  # os function, i.e. checking file status
+from itertools import cycle  # allows easy circular choice list
+import atexit  # launch a function at exit
 
 # External, non built-in modules
-import OpenGL.GL as GL              # standard Python OpenGL wrapper
-import glfw                         # lean window system wrapper for OpenGL
-import numpy as np                  # all matrix manipulations & OpenGL args
-import assimpcy                     # 3D resource loader
+import OpenGL.GL as GL  # standard Python OpenGL wrapper
+import glfw  # lean window system wrapper for OpenGL
+import numpy as np  # all matrix manipulations & OpenGL args
+import assimpcy  # 3D resource loader
 
 # our transform functions
 from transform import Trackball, identity
@@ -65,7 +65,7 @@ class Shader:
         get_name = {int(k): str(k).split()[0] for k in self.GL_SETTERS.keys()}
         for var in range(GL.glGetProgramiv(self.glid, GL.GL_ACTIVE_UNIFORMS)):
             name, size, type_ = GL.glGetActiveUniform(self.glid, var)
-            name = name.decode().split('[')[0]   # remove array characterization
+            name = name.decode().split('[')[0]  # remove array characterization
             args = [GL.glGetUniformLocation(self.glid, name), size]
             # add transpose=True as argument for matrix types
             if type_ in {GL.GL_FLOAT_MAT2, GL.GL_FLOAT_MAT3, GL.GL_FLOAT_MAT4}:
@@ -85,15 +85,15 @@ class Shader:
         GL.glDeleteProgram(self.glid)  # object dies => destroy GL object
 
     GL_SETTERS = {
-        GL.GL_UNSIGNED_INT:      GL.glUniform1uiv,
+        GL.GL_UNSIGNED_INT: GL.glUniform1uiv,
         GL.GL_UNSIGNED_INT_VEC2: GL.glUniform2uiv,
         GL.GL_UNSIGNED_INT_VEC3: GL.glUniform3uiv,
         GL.GL_UNSIGNED_INT_VEC4: GL.glUniform4uiv,
-        GL.GL_FLOAT:      GL.glUniform1fv, GL.GL_FLOAT_VEC2:   GL.glUniform2fv,
-        GL.GL_FLOAT_VEC3: GL.glUniform3fv, GL.GL_FLOAT_VEC4:   GL.glUniform4fv,
-        GL.GL_INT:        GL.glUniform1iv, GL.GL_INT_VEC2:     GL.glUniform2iv,
-        GL.GL_INT_VEC3:   GL.glUniform3iv, GL.GL_INT_VEC4:     GL.glUniform4iv,
-        GL.GL_SAMPLER_1D: GL.glUniform1iv, GL.GL_SAMPLER_2D:   GL.glUniform1iv,
+        GL.GL_FLOAT: GL.glUniform1fv, GL.GL_FLOAT_VEC2: GL.glUniform2fv,
+        GL.GL_FLOAT_VEC3: GL.glUniform3fv, GL.GL_FLOAT_VEC4: GL.glUniform4fv,
+        GL.GL_INT: GL.glUniform1iv, GL.GL_INT_VEC2: GL.glUniform2iv,
+        GL.GL_INT_VEC3: GL.glUniform3iv, GL.GL_INT_VEC4: GL.glUniform4iv,
+        GL.GL_SAMPLER_1D: GL.glUniform1iv, GL.GL_SAMPLER_2D: GL.glUniform1iv,
         GL.GL_SAMPLER_3D: GL.glUniform1iv, GL.GL_SAMPLER_CUBE: GL.glUniform1iv,
         GL.GL_FLOAT_MAT2: GL.glUniformMatrix2fv,
         GL.GL_FLOAT_MAT3: GL.glUniformMatrix3fv,
@@ -103,6 +103,7 @@ class Shader:
 
 class VertexArray:
     """ helper class to create and self destroy OpenGL vertex array objects."""
+
     def __init__(self, shader, attributes, index=None, usage=GL.GL_STATIC_DRAW):
         """ Vertex array from attributes and optional index array. Vertex
             Attributes should be list of arrays with one row per vertex. """
@@ -157,6 +158,7 @@ class VertexArray:
 # ------------  Mesh is the core drawable -------------------------------------
 class Mesh:
     """ Basic mesh class, attributes and uniforms passed as arguments """
+
     def __init__(self, shader, attributes, index=None,
                  usage=GL.GL_STATIC_DRAW, **uniforms):
         self.shader = shader
@@ -172,6 +174,7 @@ class Mesh:
 # ------------  Node is the core drawable for hierarchical scene graphs -------
 class Node:
     """ Scene graph transform and parameter broadcast node """
+
     def __init__(self, children=(), transform=identity()):
         self.transform = transform
         self.world_transform = identity()
@@ -244,7 +247,7 @@ def load(file, shader, tex_file=None, **params):
             # search texture in file's whole subdir since path often screwed up
             paths = os.walk(path, followlinks=True)
             tfile = next((os.path.join(d, f) for d, _, n in paths for f in n
-                     if name.startswith(f) or f.startswith(name)), None)
+                          if name.startswith(f) or f.startswith(name)), None)
             assert tfile, 'Cannot find texture %s in %s subtree' % (name, path)
         else:
             tfile = None
@@ -269,7 +272,7 @@ def load(file, shader, tex_file=None, **params):
             )
 
     # ---- prepare scene graph nodes
-    nodes = {}                                       # nodes name -> node lookup
+    nodes = {}  # nodes name -> node lookup
     nodes_per_mesh_id = [[] for _ in scene.mMeshes]  # nodes holding a mesh_id
 
     def make_nodes(assimp_node):
@@ -323,8 +326,8 @@ def load(file, shader, tex_file=None, **params):
                 for entry in bone.mWeights:  # need weight,id pairs for sorting
                     vbone[entry.mVertexId][bone_id] = (entry.mWeight, bone_id)
 
-            vbone.sort(order='weight')   # sort rows, high weights last
-            vbone = vbone[:, -4:]        # limit bone size, keep highest 4
+            vbone.sort(order='weight')  # sort rows, high weights last
+            vbone = vbone[:, -4:]  # limit bone size, keep highest 4
 
             attributes.update(bone_ids=vbone['id'],
                               bone_weights=vbone['weight'])
@@ -382,7 +385,7 @@ class Viewer(Node):
 
         # initialize GL by setting viewport and default render characteristics
         GL.glClearColor(0.1, 0.1, 0.1, 0.1)
-        GL.glEnable(GL.GL_CULL_FACE)   # backface culling enabled (TP2)
+        GL.glEnable(GL.GL_CULL_FACE)  # backface culling enabled (TP2)
         GL.glEnable(GL.GL_DEPTH_TEST)  # depth test now enabled (TP2)
 
         # cyclic iterator to easily toggle polygon rendering modes
@@ -401,7 +404,8 @@ class Viewer(Node):
             self.draw(view=self.trackball.view_matrix(),
                       projection=self.trackball.projection_matrix(win_size),
                       model=identity(),
-                      w_camera_position=cam_pos)
+                      w_camera_position=cam_pos,
+                      skyColour=(0.5, 0.5, 0.5))
 
             # flush render commands, and swap draw buffers
             glfw.swap_buffers(self.win)

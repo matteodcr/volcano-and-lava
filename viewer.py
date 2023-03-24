@@ -52,7 +52,7 @@ class Triangle(Mesh):
 def main():
     """ create a window, add scene objects, then run rendering loop """
     viewer = Viewer()
-    
+
 
     # default color shader
     shader = Shader("Shaders/color.vert", "Shaders/color.frag")
@@ -60,7 +60,7 @@ def main():
     shaderLight = Shader("Shaders/phong.vert", "Shaders/phong.frag")
     skyboxShader = Shader("Shaders/skybox.vert", "Shaders/skybox.frag")
     shaderNormals = Shader("Shaders/normalviz.vert", "Shaders/normalviz.frag", "Shaders/normalviz.geom")
-    
+
     #Textures
     trunk = Texture("Textures/tronc.jpg")
     leaves = Texture("Textures/leaves.jpg")
