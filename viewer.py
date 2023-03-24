@@ -3,22 +3,23 @@
 Python OpenGL practical application.
 """
 
-import sys                          # for system arguments
+import sys  # for system arguments
 
 # External, non built-in modules
-import OpenGL.GL as GL              # standard Python OpenGL wrapper
-import numpy as np                  # all matrix manipulations & OpenGL args
-import glfw                         # lean window system wrapper for OpenGL
+import OpenGL.GL as GL
+from animation import KeyFrameControlNode  # standard Python OpenGL wrapper
+import numpy as np  # all matrix manipulations & OpenGL args
+import glfw  # lean window system wrapper for OpenGL
 
 from core import Shader, Mesh, Viewer, Node, load
-from transform import translate, identity, rotate, scale
-from texture import Terrain, TexturedSphere, TexturedCylinder, TexturedPlane, TexturedTree, ForestTerrain,Texture
+from skybox import SkyBox
+from transform import translate, identity, rotate, scale, vec, quaternion, quaternion_from_euler
+from texture import Terrain, TexturedSphere, TexturedCylinder, TexturedPlane, TexturedTree, ForestTerrain, Texture, LakeForestTerrain
+from particules import Particule,leafParticle, FallingLeaf
 
-RED = 0.5
-GREEN = 0.5
-BLUE = 0.5
 class Axis(Mesh):
     """ Axis object useful for debugging coordinate frames """
+
     def __init__(self, shader):
         pos = ((0, 0, 0), (1, 0, 0), (0, 0, 0), (0, 1, 0), (0, 0, 0), (0, 0, 1))
         col = ((1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0), (0, 0, 1), (0, 0, 1))
@@ -30,6 +31,7 @@ class Axis(Mesh):
 
 class Triangle(Mesh):
     """Hello triangle object"""
+
     def __init__(self, shader):
         position = np.array(((0, .5, 0), (-.5, -.5, 0), (.5, -.5, 0)), 'f')
         color = np.array(((1, 0, 0), (0, 1, 0), (0, 0, 1)), 'f')
@@ -45,25 +47,40 @@ class Triangle(Mesh):
             self.color = (0, 0, 0)
 
 
-
 # -------------- main program and scene setup --------------------------------
 def main():
     """ create a window, add scene objects, then run rendering loop """
     viewer = Viewer()
 
+
     # default color shader
     shader = Shader("Shaders/color.vert", "Shaders/color.frag")
     shaderTexture = Shader("Shaders/texture.vert", "Shaders/texture.frag")
     shaderLight = Shader("Shaders/phong.vert", "Shaders/phong.frag")
-    
-    light_dir = (-1,-1,-1)
+    skyboxShader = Shader("Shaders/skybox.vert", "Shaders/skybox.frag")
+    shaderNormals = Shader("Shaders/normalviz.vert", "Shaders/normalviz.frag", "Shaders/normalviz.geom")
+
+    #Textures
+    trunk = Texture("Textures/tronc.jpg")
+    leaves = Texture("Textures/leaves.jpg")
+    leaf = Texture("Textures/leaf.png")
+    grass = Texture("Textures/grass.png")
+    water = Texture("Textures/water.jpg")
+
+    light_dir = (1, -1, 1)
 
     # place instances of our basic objects
-    viewer.add(*[mesh for file in sys.argv[1:] for mesh in load(file, shader, light_dir=light_dir)])
+    viewer.add(*[mesh for file in sys.argv[1:] for mesh in load(file, shaderLight, light_dir=light_dir)])
     if len(sys.argv) < 2:
         viewer.add(Axis(shaderTexture))
-        #viewer.add(TexturedCylinder(shader=shaderLight, texture=Texture("Textures/leaves.jpg"), light_dir=light_dir))
-        viewer.add(ForestTerrain(shader=shaderTexture, terrainTexture=Texture("Textures/grass.png"),trunkTextures=Texture("Textures/tronc.jpg"), leavesTextures=Texture("Textures/leaves.jpg"), light_dir=light_dir))
+        viewer.add(SkyBox(skyboxShader, "Textures/skybox/"))
+        #viewer.add(ForestTerrain(position=(0,-1,0), shader=shaderLight, terrainTexture=grass,trunkTextures=trunk,leavesTextures=leaves, light_dir=light_dir))
+        #viewer.add(Terrain(shader=shaderLight, texture=grass, light_dir=light_dir))
+        #viewer.add(TexturedTree(shader=shaderLight, position=(1,0,0), leavesTextures=leaves, trunkTextures=trunk, light_dir=light_dir))
+        #viewer.add(LakeForestTerrain(shader=shaderLight, position = (5,2,-3), size=(100,100), light_dir=light_dir, terrainTexture=grass, waterTextures=water, leavesTextures=leaves, trunkTextures=trunk))
+        #viewer.addParticle(Particule(viewer, shaderTexture, leaf, [[1,1,1],[0,0,1],[0,0,1],[0,0,1]], [[0,0,0],[0,1,0],[1,0,0],[1,1,0]], [0,3,1,0,2,3], [[0,0],[0,0.5],[1,0],[1,0.5]], light_dir, [0,1,0], position = (0,1,0)))
+        #viewer.add(leafParticle(viewer, shaderTexture, light_dir, (0,1,0)))
+        viewer.add(FallingLeaf(viewer, shaderTexture, light_dir, (0,1,0)))
         print('Usage:\n\t%s [3dfile]*\n\n3dfile\t\t the filename of a model in'
               ' format supported by assimp.' % (sys.argv[0],))
 
@@ -72,4 +89,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()                     # main function keeps variables locally scoped
+    main()  # main function keeps variables locally scoped

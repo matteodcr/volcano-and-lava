@@ -12,7 +12,6 @@ uniform vec3 light_dir;
 // material properties
 uniform vec3 k_a;
 uniform float s;
-
 // world camera position
 uniform vec3 w_camera_position;
 
@@ -28,6 +27,6 @@ void main() {
     vec3 diffuse_color = texture(diffuse_map, frag_tex_coords).rgb * max(dot(n, l), 0);
     vec3 specular_color = texture(diffuse_map, frag_tex_coords).rgb * pow(max(dot(r, v), 0), s);
 
-    out_color = vec4(k_a, 1) + vec4(diffuse_color, 1) + vec4(specular_color, 1);
+    out_color = vec4(k_a, 1) + vec4(diffuse_color, 1)*1 + vec4(specular_color, 1);
     
 }

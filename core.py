@@ -20,7 +20,6 @@ atexit.register(glfw.terminate)
 # ------------ low level OpenGL object wrappers ----------------------------
 class Shader:
     """ Helper class to create and automatically destroy shader program """
-
     @staticmethod
     def _compile_shader(src, shader_type):
         src = open(src, 'r').read() if os.path.exists(src) else src
@@ -29,7 +28,7 @@ class Shader:
         GL.glShaderSource(shader, src)
         GL.glCompileShader(shader)
         status = GL.glGetShaderiv(shader, GL.GL_COMPILE_STATUS)
-        src = ('%3d: %s' % (i + 1, l) for i, l in enumerate(src.splitlines()))
+        src = ('%3d: %s' % (i+1, l) for i, l in enumerate(src.splitlines()))
         if not status:
             log = GL.glGetShaderInfoLog(shader).decode('ascii')
             GL.glDeleteShader(shader)
@@ -38,17 +37,23 @@ class Shader:
             os._exit(1)
         return shader
 
-    def __init__(self, vertex_source, fragment_source, debug=False):
+    def __init__(self, vertex_source, fragment_source, geom_source=None, debug=False):
         """ Shader can be initialized with raw strings or source file names """
         vert = self._compile_shader(vertex_source, GL.GL_VERTEX_SHADER)
         frag = self._compile_shader(fragment_source, GL.GL_FRAGMENT_SHADER)
+        if (not geom_source is None):
+            geom = self._compile_shader(geom_source, GL.GL_GEOMETRY_SHADER)
         if vert and frag:
             self.glid = GL.glCreateProgram()  # pylint: disable=E1111
             GL.glAttachShader(self.glid, vert)
             GL.glAttachShader(self.glid, frag)
+            if (not geom_source is None):
+                GL.glAttachShader(self.glid, geom)
             GL.glLinkProgram(self.glid)
             GL.glDeleteShader(vert)
             GL.glDeleteShader(frag)
+            if (not geom_source is None):
+                GL.glDeleteShader(geom)
             status = GL.glGetProgramiv(self.glid, GL.GL_LINK_STATUS)
             if not status:
                 print(GL.glGetProgramInfoLog(self.glid).decode('ascii'))
@@ -181,7 +186,7 @@ class Node:
 
     def draw(self, model=identity(), **other_uniforms):
         """ Recursive draw, passing down updated model matrix. """
-        self.world_transform = identity()  # TODO: compute model matrix
+        self.world_transform = model @ self.transform
         for child in self.children:
             child.draw(model=self.world_transform, **other_uniforms)
 
@@ -416,6 +421,13 @@ class Viewer(Node):
         self.mouse = (xpos, glfw.get_window_size(win)[1] - ypos)
         if glfw.get_mouse_button(win, glfw.MOUSE_BUTTON_LEFT):
             self.trackball.drag(old, self.mouse, glfw.get_window_size(win))
+            for child in self.children:
+                if hasattr(child, 'trackball'): #for particles
+                    child.trackball.drag(old, self.mouse, glfw.get_window_size(win))
+                elif hasattr(child, 'children'): # for KeyFrameControlNode
+                    for c in child.children:
+                        if hasattr(c, 'trackball'):
+                            c.trackball.drag(old, self.mouse, glfw.get_window_size(win))
         if glfw.get_mouse_button(win, glfw.MOUSE_BUTTON_RIGHT):
             self.trackball.pan(old, self.mouse)
 
