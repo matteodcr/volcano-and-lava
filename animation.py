@@ -48,13 +48,14 @@ class TransformKeyFrames:
             rotate_keys = rotate_keys.items()
         keyframes = sorted(((key[0], key[1]) for key in rotate_keys))
         self.rotation_times, self.rotation_values = zip(*keyframes)  # pairs list -> 2 lists
+        
+        self.min_time = max(self.translation.times[0], max(self.scale.times[0], self.rotation_times[0]))
+        self.max_time = min(self.translation.times[-1], min(self.scale.times[-1], self.rotation_times[-1]))
 
     def value(self, time):
         """ Compute each component's interpolation and compose TRS matrix """
         # 1. ensure time is within bounds else return boundary keyframe
-        min_time = max(self.translation.times[0], max(self.scale.times[0], self.rotation_times[0]))
-        max_time = min(self.translation.times[-1], min(self.scale.times[-1], self.rotation_times[-1]))
-        time = min(max(time, min_time), max_time)
+        time = min(max(time, self.min_time), self.max_time)
         
         # 2. search for closest index entry in self.times, using bisect_left
         closest_index = bisect_left(self.rotation_times, time)
@@ -74,13 +75,17 @@ class TransformKeyFrames:
 
 class KeyFrameControlNode(Node):
     """ Place node with transform keys above a controlled subtree """
-    def __init__(self, trans_keys, rot_keys, scale_keys, transform=identity()):
+    def __init__(self, trans_keys, rot_keys, scale_keys, transform=identity(), repeat=False):
         super().__init__(transform=transform)
+        self.repeat = repeat
         self.keyframes = TransformKeyFrames(trans_keys, rot_keys, scale_keys)
 
     def draw(self, primitives=GL.GL_TRIANGLES, **uniforms):
         """ When redraw requested, interpolate our node transform from keys """
-        self.transform = self.keyframes.value(glfw.get_time())
+        if self.repeat :
+            self.transform = self.keyframes.value(glfw.get_time()%self.keyframes.max_time)
+        else :
+            self.transform = self.keyframes.value(glfw.get_time())
         super().draw(primitives=primitives, **uniforms)
 
 

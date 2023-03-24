@@ -63,9 +63,5 @@ class FallingLeaf(KeyFrameControlNode):
         trans_keys = {0: vec(0, 0, 0), 8: vec(0, -3, 0), 9: vec(0, -3.3, 0), 10: vec(0, -3.5, 0)}
         rot_keys = {0:quaternion(), 10:quaternion()}
         scale_keys = {0: 1, 8: 0.7, 9:0.3, 10: 0}
-        super().__init__(trans_keys, rot_keys, scale_keys)
+        super().__init__(trans_keys, rot_keys, scale_keys, repeat=True)
         self.add(leafParticle(viewer, shader, light_dir, position, shinyness, scale))
-
-class FallingLeaves(Node) :
-    def __init__(self, children=..., transform=...):
-        super().__init__(children, transform)
