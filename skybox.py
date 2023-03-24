@@ -2,7 +2,7 @@ import OpenGL.GL as GL
 from PIL import Image
 import os
 from core import Mesh
-from texture import TexturedCube
+from textures import TexturedCube
 
 FILE_OPENING_CONFIG = 'RGBA'
 
