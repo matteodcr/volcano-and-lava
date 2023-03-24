@@ -405,7 +405,7 @@ class Viewer(Node):
                       projection=self.trackball.projection_matrix(win_size),
                       model=identity(),
                       w_camera_position=cam_pos,
-                      skyColour=(0.5, 0.5, 0.5))
+                      skyColour=(115/256, 149/256, 153/256))
 
             # flush render commands, and swap draw buffers
             glfw.swap_buffers(self.win)
