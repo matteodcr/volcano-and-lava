@@ -6,15 +6,16 @@ Python OpenGL practical application.
 import sys  # for system arguments
 
 # External, non built-in modules
-import OpenGL.GL as GL  # standard Python OpenGL wrapper
+import OpenGL.GL as GL
+from animation import KeyFrameControlNode  # standard Python OpenGL wrapper
 import numpy as np  # all matrix manipulations & OpenGL args
 import glfw  # lean window system wrapper for OpenGL
 
 from core import Shader, Mesh, Viewer, Node, load
 from skybox import SkyBox
-from transform import translate, identity, rotate, scale
+from transform import translate, identity, rotate, scale, vec, quaternion, quaternion_from_euler
 from texture import Terrain, TexturedSphere, TexturedCylinder, TexturedPlane, TexturedTree, ForestTerrain, Texture, LakeForestTerrain
-
+from particules import Particule,leafParticle
 
 class Axis(Mesh):
     """ Axis object useful for debugging coordinate frames """
@@ -62,6 +63,7 @@ def main():
     #Textures
     trunk = Texture("Textures/tronc.jpg")
     leaves = Texture("Textures/leaves.jpg")
+    leaf = Texture("Textures/leaf.png")
     grass = Texture("Textures/grass.png")
     water = Texture("Textures/water.jpg")
 
@@ -75,7 +77,16 @@ def main():
         #viewer.add(ForestTerrain(position=(0,-1,0), shader=shaderLight, terrainTexture=grass,trunkTextures=trunk,leavesTextures=leaves, light_dir=light_dir))
         #viewer.add(Terrain(shader=shaderLight, texture=grass, light_dir=light_dir))
         #viewer.add(TexturedTree(shader=shaderLight, position=(1,0,0), leavesTextures=leaves, trunkTextures=trunk, light_dir=light_dir))
-        viewer.add(LakeForestTerrain(shader=shaderLight, position = (5,2,-3), size=(100,100), light_dir=light_dir, terrainTexture=grass, waterTextures=water, leavesTextures=leaves, trunkTextures=trunk))
+        #viewer.add(LakeForestTerrain(shader=shaderLight, position = (5,2,-3), size=(100,100), light_dir=light_dir, terrainTexture=grass, waterTextures=water, leavesTextures=leaves, trunkTextures=trunk))
+        #viewer.addParticle(Particule(viewer, shaderTexture, leaf, [[1,1,1],[0,0,1],[0,0,1],[0,0,1]], [[0,0,0],[0,1,0],[1,0,0],[1,1,0]], [0,3,1,0,2,3], [[0,0],[0,0.5],[1,0],[1,0.5]], light_dir, [0,1,0], position = (0,1,0)))
+        #viewer.add(leafParticle(viewer, shaderTexture, light_dir, (0,1,0)))
+        translate_keys = {0: vec(0, 0, 0), 2: vec(1, 1, 0), 4: vec(0, 0, 0)}
+        rotate_keys = {0: quaternion(), 2: quaternion_from_euler(180, 45, 90),
+                    3: quaternion_from_euler(180, 0, 180), 4: quaternion()}
+        scale_keys = {0: 0.5, 2: 0.2, 4: 0.5}
+        keynode = KeyFrameControlNode(translate_keys, rotate_keys, scale_keys)
+        keynode.add(leafParticle(viewer, shaderTexture, light_dir, (0,1,0)))
+        viewer.add(keynode)
         print('Usage:\n\t%s [3dfile]*\n\n3dfile\t\t the filename of a model in'
               ' format supported by assimp.' % (sys.argv[0],))
 

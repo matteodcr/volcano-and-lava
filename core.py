@@ -183,7 +183,7 @@ class Node:
 
     def draw(self, model=identity(), **other_uniforms):
         """ Recursive draw, passing down updated model matrix. """
-        self.world_transform = identity()   # TODO: compute model matrix
+        self.world_transform = model @ self.transform
         for child in self.children:
             child.draw(model=self.world_transform, **other_uniforms)
 
@@ -417,6 +417,13 @@ class Viewer(Node):
         self.mouse = (xpos, glfw.get_window_size(win)[1] - ypos)
         if glfw.get_mouse_button(win, glfw.MOUSE_BUTTON_LEFT):
             self.trackball.drag(old, self.mouse, glfw.get_window_size(win))
+            for child in self.children:
+                if hasattr(child, 'trackball'): #for particles
+                    child.trackball.drag(old, self.mouse, glfw.get_window_size(win))
+                elif hasattr(child, 'children'): # for KeyFrameControlNode
+                    for c in child.children:
+                        if hasattr(c, 'trackball'):
+                            c.trackball.drag(old, self.mouse, glfw.get_window_size(win))
         if glfw.get_mouse_button(win, glfw.MOUSE_BUTTON_RIGHT):
             self.trackball.pan(old, self.mouse)
 
