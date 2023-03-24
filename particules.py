@@ -7,7 +7,7 @@ import numpy as np  # all matrix manipulations & OpenGL args
 from core import Mesh, Node, Texture
 import random
 from texture import Texture, Textured, calcNormals
-from transform import Trackball
+from transform import Trackball, vec, quaternion, quaternion_from_euler
 from animation import (KeyFrameControlNode)
 
 class Particule(Textured):
@@ -57,3 +57,11 @@ class leafParticle(Particule):
         normals = [[0,0,1],[0,0,1],[0,0,1],[0,0,1]]
         tex_coord = [[0,1],[1,1],[0,0],[1,0]]
         super().__init__(viewer, shader, texture, normals, vertices, index, tex_coord, light_dir, position, shinyness, scale)
+
+class FallingLeaf(KeyFrameControlNode):
+    def __init__(self, viewer, shader, light_dir, position=(0,0,0), shinyness=2, scale=1):
+        trans_keys = {0: vec(0, 0, 0), 8: vec(0, -3, 0), 9: vec(0, -3.3, 0), 10: vec(0, -3.5, 0)}
+        rot_keys = {0:quaternion(), 10:quaternion()}
+        scale_keys = {0: 1, 8: 0.7, 9:0.3, 10: 0}
+        super().__init__(trans_keys, rot_keys, scale_keys)
+        self.add(leafParticle(viewer, shader, light_dir, position, shinyness, scale))

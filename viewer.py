@@ -15,7 +15,7 @@ from core import Shader, Mesh, Viewer, Node, load
 from skybox import SkyBox
 from transform import translate, identity, rotate, scale, vec, quaternion, quaternion_from_euler
 from texture import Terrain, TexturedSphere, TexturedCylinder, TexturedPlane, TexturedTree, ForestTerrain, Texture, LakeForestTerrain
-from particules import Particule,leafParticle
+from particules import Particule,leafParticle, FallingLeaf
 
 class Axis(Mesh):
     """ Axis object useful for debugging coordinate frames """
@@ -80,13 +80,7 @@ def main():
         #viewer.add(LakeForestTerrain(shader=shaderLight, position = (5,2,-3), size=(100,100), light_dir=light_dir, terrainTexture=grass, waterTextures=water, leavesTextures=leaves, trunkTextures=trunk))
         #viewer.addParticle(Particule(viewer, shaderTexture, leaf, [[1,1,1],[0,0,1],[0,0,1],[0,0,1]], [[0,0,0],[0,1,0],[1,0,0],[1,1,0]], [0,3,1,0,2,3], [[0,0],[0,0.5],[1,0],[1,0.5]], light_dir, [0,1,0], position = (0,1,0)))
         #viewer.add(leafParticle(viewer, shaderTexture, light_dir, (0,1,0)))
-        translate_keys = {0: vec(0, 0, 0), 2: vec(1, 1, 0), 4: vec(0, 0, 0)}
-        rotate_keys = {0: quaternion(), 2: quaternion_from_euler(180, 45, 90),
-                    3: quaternion_from_euler(180, 0, 180), 4: quaternion()}
-        scale_keys = {0: 0.5, 2: 0.2, 4: 0.5}
-        keynode = KeyFrameControlNode(translate_keys, rotate_keys, scale_keys)
-        keynode.add(leafParticle(viewer, shaderTexture, light_dir, (0,1,0)))
-        viewer.add(keynode)
+        viewer.add(FallingLeaf(viewer, shaderTexture, light_dir, (0,1,0)))
         print('Usage:\n\t%s [3dfile]*\n\n3dfile\t\t the filename of a model in'
               ' format supported by assimp.' % (sys.argv[0],))
 
