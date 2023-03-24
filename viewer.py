@@ -14,8 +14,9 @@ import glfw  # lean window system wrapper for OpenGL
 from core import Shader, Mesh, Viewer, Node, load
 from skybox import SkyBox
 from transform import translate, identity, rotate, scale, vec, quaternion, quaternion_from_euler
-from texture import Terrain, TexturedSphere, TexturedCylinder, TexturedPlane, TexturedTree, ForestTerrain, Texture, LakeForestTerrain
-from particules import Particule,leafParticle, FallingLeaf
+from textures import Terrain, TexturedSphere, TexturedCylinder, TexturedPlane, TexturedTree, ForestTerrain, LakeForestTerrain
+from texture import Texture
+from particules import Particule,leafParticle, FallingLeaf, FallingLeaves
 
 class Axis(Mesh):
     """ Axis object useful for debugging coordinate frames """
@@ -74,13 +75,8 @@ def main():
     if len(sys.argv) < 2:
         viewer.add(Axis(shaderTexture))
         viewer.add(SkyBox(skyboxShader, "Textures/skybox/"))
-        #viewer.add(ForestTerrain(position=(0,-1,0), shader=shaderLight, terrainTexture=grass,trunkTextures=trunk,leavesTextures=leaves, light_dir=light_dir))
-        #viewer.add(Terrain(shader=shaderLight, texture=grass, light_dir=light_dir))
-        #viewer.add(TexturedTree(shader=shaderLight, position=(1,0,0), leavesTextures=leaves, trunkTextures=trunk, light_dir=light_dir))
-        #viewer.add(LakeForestTerrain(shader=shaderLight, position = (5,2,-3), size=(100,100), light_dir=light_dir, terrainTexture=grass, waterTextures=water, leavesTextures=leaves, trunkTextures=trunk))
-        #viewer.addParticle(Particule(viewer, shaderTexture, leaf, [[1,1,1],[0,0,1],[0,0,1],[0,0,1]], [[0,0,0],[0,1,0],[1,0,0],[1,1,0]], [0,3,1,0,2,3], [[0,0],[0,0.5],[1,0],[1,0.5]], light_dir, [0,1,0], position = (0,1,0)))
-        #viewer.add(leafParticle(viewer, shaderTexture, light_dir, (0,1,0)))
-        viewer.add(FallingLeaf(viewer, shaderTexture, light_dir, (0,1,0)))
+        viewer.add(LakeForestTerrain(shaderLight, shaderTexture, grass, water, leaves, trunk, leaf, viewer, light_dir))
+        #viewer.add(TexturedTree(shaderLight, (0,-2,0), leaves, trunk, viewer, leaf, light_dir))
         print('Usage:\n\t%s [3dfile]*\n\n3dfile\t\t the filename of a model in'
               ' format supported by assimp.' % (sys.argv[0],))
 

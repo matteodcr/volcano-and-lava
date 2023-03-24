@@ -50,8 +50,7 @@ class Particule(Textured):
         return super().draw(primitives, **uniforms)
 
 class leafParticle(Particule):
-    def __init__(self, viewer, shader, light_dir, position=(0,0,0), shinyness=2, scale=1) :
-        texture=Texture("Textures/leaf.png")
+    def __init__(self, viewer, shader, light_dir, texture, position=(0,0,0), shinyness=2, scale=1) :
         vertices = [[-0.5,-0.5,0],[0.5,-0.5,0],[-0.5,0.5,0],[0.5,0.5,0]]
         index = [0,1,3,0,3,2]
         normals = [[0,0,1],[0,0,1],[0,0,1],[0,0,1]]
@@ -59,9 +58,25 @@ class leafParticle(Particule):
         super().__init__(viewer, shader, texture, normals, vertices, index, tex_coord, light_dir, position, shinyness, scale)
 
 class FallingLeaf(KeyFrameControlNode):
-    def __init__(self, viewer, shader, light_dir, position=(0,0,0), shinyness=2, scale=1):
-        trans_keys = {0: vec(0, 0, 0), 8: vec(0, -3, 0), 9: vec(0, -3.3, 0), 10: vec(0, -3.5, 0)}
-        rot_keys = {0:quaternion(), 10:quaternion()}
-        scale_keys = {0: 1, 8: 0.7, 9:0.3, 10: 0}
-        super().__init__(trans_keys, rot_keys, scale_keys)
-        self.add(leafParticle(viewer, shader, light_dir, position, shinyness, scale))
+    def __init__(self, viewer, shader, light_dir, height, texture, position=(0,0,0), shinyness=2, scale=1, repeat=False, animationShift=0):
+        (x,z,y)=position
+        trans_keys = {0: vec(x, z, y), 3: vec(x, z-height*0.9, y), 4: vec(x, z-height*0.98, y), 5: vec(x, z-height, y)}
+        rot_keys = {0:quaternion(), 5:quaternion()}
+        scale_keys = {0: 1, 5: 1}
+        super().__init__(trans_keys, rot_keys, scale_keys, repeat=repeat, animationShift=animationShift)
+        self.add(leafParticle(viewer, shader, light_dir, texture, (0,0,0), shinyness, scale))
+
+class FallingLeaves(Node):
+    def __init__(self, viewer, shader, light_dir, height, texture, position=(0,0,0), shinyness=2, ray=1):
+        super().__init__()
+        nbLeaves = random.randint(0, 2)
+        for leave in range(nbLeaves):
+            (x,z,y) = position
+            theta = np.random.uniform(0, 2*np.pi)  # angle aléatoire
+            s = np.random.uniform(0, ray/2)  # distance aléatoire dans le rayon
+            x = x + s*np.cos(theta)  # nouvelle coordonnée x
+            y = y + s*np.sin(theta)  # nouvelle coordonnée y
+
+            animationShift = random.randint(0,9)
+            self.add(FallingLeaf(viewer, shader, light_dir, height, texture, (x,z,y), repeat=True, animationShift=animationShift))
+        

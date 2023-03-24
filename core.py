@@ -183,6 +183,10 @@ class Node:
     def add(self, *drawables):
         """ Add drawables to this node, simply updating children list """
         self.children.extend(drawables)
+    
+    def remove(self, *drawables):
+        for drawable in drawables :
+            self.children.remove(drawable)
 
     def draw(self, model=identity(), **other_uniforms):
         """ Recursive draw, passing down updated model matrix. """
@@ -194,6 +198,13 @@ class Node:
         """ Dispatch keyboard events to children with key handler """
         for child in (c for c in self.children if hasattr(c, 'key_handler')):
             child.key_handler(key)
+    
+    def updateTrackball(self, old, mouse, win):
+        if hasattr(self, 'trackball'): #for particles
+            self.trackball.drag(old, mouse, glfw.get_window_size(win))
+        for child in self.children:
+            if isinstance(child, Node):
+                child.updateTrackball(old, mouse, win)
 
 
 # -------------- 3D resource loader -------------------------------------------
@@ -394,7 +405,7 @@ class Viewer(Node):
                       projection=self.trackball.projection_matrix(win_size),
                       model=identity(),
                       w_camera_position=cam_pos,
-                      skyColour=(0.5, 0.5, 0.5))
+                      skyColour=(115/256, 149/256, 153/256))
 
             # flush render commands, and swap draw buffers
             glfw.swap_buffers(self.win)
@@ -420,14 +431,7 @@ class Viewer(Node):
         old = self.mouse
         self.mouse = (xpos, glfw.get_window_size(win)[1] - ypos)
         if glfw.get_mouse_button(win, glfw.MOUSE_BUTTON_LEFT):
-            self.trackball.drag(old, self.mouse, glfw.get_window_size(win))
-            for child in self.children:
-                if hasattr(child, 'trackball'): #for particles
-                    child.trackball.drag(old, self.mouse, glfw.get_window_size(win))
-                elif hasattr(child, 'children'): # for KeyFrameControlNode
-                    for c in child.children:
-                        if hasattr(c, 'trackball'):
-                            c.trackball.drag(old, self.mouse, glfw.get_window_size(win))
+            self.updateTrackball(old, self.mouse, win)
         if glfw.get_mouse_button(win, glfw.MOUSE_BUTTON_RIGHT):
             self.trackball.pan(old, self.mouse)
 
