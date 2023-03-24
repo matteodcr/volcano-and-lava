@@ -79,8 +79,8 @@ def main():
         #viewer.add(TexturedTree(shader=shaderLight, position=(1,0,0), leavesTextures=leaves, trunkTextures=trunk, light_dir=light_dir))
         #viewer.add(LakeForestTerrain(shader=shaderLight, position = (5,2,-3), size=(100,100), light_dir=light_dir, terrainTexture=grass, waterTextures=water, leavesTextures=leaves, trunkTextures=trunk))
         #viewer.addParticle(Particule(viewer, shaderTexture, leaf, [[1,1,1],[0,0,1],[0,0,1],[0,0,1]], [[0,0,0],[0,1,0],[1,0,0],[1,1,0]], [0,3,1,0,2,3], [[0,0],[0,0.5],[1,0],[1,0.5]], light_dir, [0,1,0], position = (0,1,0)))
-        #viewer.add(leafParticle(viewer, shaderTexture, light_dir, (0,1,0)))
-        viewer.add(FallingLeaf(viewer, shaderTexture, light_dir, (0,1,0)))
+        viewer.add(leafParticle(viewer, shaderTexture, light_dir, (0,1,0)))
+        #viewer.add(FallingLeaf(viewer, shaderTexture, light_dir, (0,1,0)))
         print('Usage:\n\t%s [3dfile]*\n\n3dfile\t\t the filename of a model in'
               ' format supported by assimp.' % (sys.argv[0],))
 

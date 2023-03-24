@@ -53,7 +53,10 @@ class Textured(Node):
             GL.glActiveTexture(GL.GL_TEXTURE0 + index)
             GL.glBindTexture(texture.type, texture.glid)
             uniforms[name] = index
+        GL.glEnable(GL.GL_BLEND)
+        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
         self.drawable.draw(primitives=primitives, **uniforms)
+        GL.glDisable(GL.GL_BLEND)
 
 
 # -------------- Textured Objects ---------------------------------
