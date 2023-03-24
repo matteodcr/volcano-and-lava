@@ -349,7 +349,7 @@ class LakeForestTerrain(Node):
         for water in terrain.waters:
             self.add(water)
         (length, width) = size
-        trees = random.randint(0, (length / 10) * (width / 10))
+        trees = min(random.randint(0, (length / 10) * (width / 10)), 10)
         for t in range(trees):
             self.add(TexturedTree(shader=shader, shaderLeaf=shaderLeaf, position=terrain.getRandomPointOnGrass(),
                                   trunkTextures=trunkTextures, leavesTextures=leavesTextures, light_dir=light_dir, viewer=viewer, leafTexture=leafTexture))
