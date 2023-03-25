@@ -163,12 +163,17 @@ class Mesh:
                  usage=GL.GL_STATIC_DRAW, **uniforms):
         self.shader = shader
         self.uniforms = uniforms
+        self.index = index
+        self.usage = usage
         self.vertex_array = VertexArray(shader, attributes, index, usage)
 
     def draw(self, primitives=GL.GL_TRIANGLES, attributes=None, **uniforms):
         GL.glUseProgram(self.shader.glid)
         self.shader.set_uniforms({**self.uniforms, **uniforms})
         self.vertex_array.execute(primitives, attributes)
+    
+    def setAttributes(self, attributes):
+        self.vertex_array = VertexArray(self.shader, attributes, self.index, self.usage)
 
 
 # ------------  Node is the core drawable for hierarchical scene graphs -------
@@ -198,13 +203,6 @@ class Node:
         """ Dispatch keyboard events to children with key handler """
         for child in (c for c in self.children if hasattr(c, 'key_handler')):
             child.key_handler(key)
-    
-    def updateTrackball(self, old, mouse, win):
-        if hasattr(self, 'trackball'): #for particles
-            self.trackball.drag(old, mouse, glfw.get_window_size(win))
-        for child in self.children:
-            if isinstance(child, Node):
-                child.updateTrackball(old, mouse, win)
 
 
 # -------------- 3D resource loader -------------------------------------------
@@ -431,7 +429,7 @@ class Viewer(Node):
         old = self.mouse
         self.mouse = (xpos, glfw.get_window_size(win)[1] - ypos)
         if glfw.get_mouse_button(win, glfw.MOUSE_BUTTON_LEFT):
-            self.updateTrackball(old, self.mouse, win)
+            self.trackball.drag(old, self.mouse, glfw.get_window_size(win))
         if glfw.get_mouse_button(win, glfw.MOUSE_BUTTON_RIGHT):
             self.trackball.pan(old, self.mouse)
 
