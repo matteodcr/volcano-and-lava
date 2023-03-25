@@ -233,11 +233,11 @@ class TexturedPlaneWater(KeyFrameControlNode):
         trans_keys = {0: vec(x, y, z), 3: vec(x-0.1, y, z-0.1), 4: vec(x-0.2, y, z-0.2),
                       5: vec(x, y, z)}
         rot_keys = {0: quaternion(), 5: quaternion()}
-        scale_keys = {0: 1, 2:0.99, 5: 1}
+        scale_keys = {0: 1, 5: 1}
         super().__init__(trans_keys, rot_keys, scale_keys, repeat=repeat, animationShift=animationShift)
-        self.add((TexturedPlane(shader=shader, light_dir=light_dir, texture=texture, length=(maxx - minx)*2,
-                                width=(maxy - miny)*2,
-                                position=(-1 + x + minx + (maxx*2 - minx*2) / 2, z, -1 + y + miny + (maxy - miny) / 2))))
+        self.add((TexturedPlane(shader=shader, light_dir=light_dir, texture=texture, length=(maxx - minx) +0.4,
+                                width=(maxy - miny)+0.4,
+                                position=(-1 + x + minx + (maxx - minx) / 2, z, -1 + y + miny + (maxy - miny) / 2))))
 
 
 class Lake(KeyFrameControlNode):
@@ -333,7 +333,7 @@ class LakeTerrain(Textured):
         tex_coord = np.zeros((x * y, 2), np.float32)
         for i in range(x):
             for j in range(y):
-                vertices[y * i + j] = [i - x / 2, self.heightMap[i][j] / 2, j - y / 2]
+                vertices[y * i + j] = [i - x / 2, self.heightMap[i][j] * 0.8, j - y / 2]
                 tex_coord[y * i + j] = [i % 2, j % 2]
         vertices = vertices + np.array(self.position, np.float32)
         index = np.zeros((6 * (x * y - 1 - y)), np.float32)

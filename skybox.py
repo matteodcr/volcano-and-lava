@@ -38,7 +38,6 @@ class SkyBox(TexturedCube):
                     GL.glTexParameteri(GL.GL_TEXTURE_CUBE_MAP, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
                     GL.glTexParameteri(GL.GL_TEXTURE_CUBE_MAP, GL.GL_TEXTURE_WRAP_R, GL.GL_CLAMP_TO_EDGE)
                     i += 1
-                print("Skybox textures loaded.")
 
         mesh = Mesh(shader, attributes=dict(position=coords))
         texture = Texture(tex_path)

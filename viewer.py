@@ -14,9 +14,11 @@ import glfw  # lean window system wrapper for OpenGL
 from core import Shader, Mesh, Viewer, Node, load
 from skybox import SkyBox
 from transform import translate, identity, rotate, scale, vec, quaternion, quaternion_from_euler
-from textures import Terrain, TexturedSphere, TexturedCylinder, TexturedPlane, TexturedTree, ForestTerrain, LakeForestTerrain
+from textures import Terrain, TexturedSphere, TexturedCylinder, TexturedPlane, TexturedTree, ForestTerrain, \
+    LakeForestTerrain
 from texture import Texture
-from particules import Particule,leafParticle, FallingLeaf, FallingLeaves
+from particules import Particule, leafParticle, FallingLeaf, FallingLeaves
+
 
 class Axis(Mesh):
     """ Axis object useful for debugging coordinate frames """
@@ -53,15 +55,14 @@ def main():
     """ create a window, add scene objects, then run rendering loop """
     viewer = Viewer()
 
-
     # default color shader
-    shader = Shader("Shaders/color.vert", "Shaders/color.frag")
+    # shader = Shader("Shaders/color.vert", "Shaders/color.frag")
     shaderTexture = Shader("Shaders/texture.vert", "Shaders/texture.frag")
     shaderLight = Shader("Shaders/phong.vert", "Shaders/phong.frag")
     skyboxShader = Shader("Shaders/skybox.vert", "Shaders/skybox.frag")
-    shaderNormals = Shader("Shaders/normalviz.vert", "Shaders/normalviz.frag", "Shaders/normalviz.geom")
+    # shaderNormals = Shader("Shaders/normalviz.vert", "Shaders/normalviz.frag", "Shaders/normalviz.geom")
 
-    #Textures
+    # Textures
     trunk = Texture("Textures/tronc.jpg")
     leaves = Texture("Textures/leaves.jpg")
     leaf = Texture("Textures/leaf.png")
@@ -70,15 +71,12 @@ def main():
 
     light_dir = (1, -1, 1)
 
-    # place instances of our basic objects
-    viewer.add(*[mesh for file in sys.argv[1:] for mesh in load(file, shaderLight, light_dir=light_dir)])
-    if len(sys.argv) < 2:
-        viewer.add(Axis(shaderTexture))
-        viewer.add(SkyBox(skyboxShader, "Textures/skybox/"))
-        viewer.add(LakeForestTerrain(shaderLight, shaderTexture, grass, water, leaves, trunk, leaf, viewer, light_dir))
-        #viewer.add(TexturedTree(shaderLight, (0,-2,0), leaves, trunk, viewer, leaf, light_dir))
-        print('Usage:\n\t%s [3dfile]*\n\n3dfile\t\t the filename of a model in'
-              ' format supported by assimp.' % (sys.argv[0],))
+    print("====Controls====\nLeft-click: rotate camera\nRight-click: move camera\nMouse wheel: Zoom/Dezoom\nZ: Show vertices\nSpace: Reset time to 0")
+
+    # Skybox
+    viewer.add(SkyBox(skyboxShader, "Textures/skybox/"))
+    # Terrain with node (Trees, Lakes, ...)
+    viewer.add(LakeForestTerrain(shaderLight, shaderTexture, grass, water, leaves, trunk, leaf, viewer, light_dir))
 
     # start rendering loop
     viewer.run()

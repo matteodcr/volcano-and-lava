@@ -28,10 +28,6 @@ class Texture:
             GL.glTexParameteri(tex_type, GL.GL_TEXTURE_MIN_FILTER, min_filter)
             GL.glTexParameteri(tex_type, GL.GL_TEXTURE_MAG_FILTER, mag_filter)
             GL.glGenerateMipmap(tex_type)
-            print(f'Loaded texture {tex_file} ({tex.width}x{tex.height}'
-                  f' wrap={str(wrap_mode).split()[0]}'
-                  f' min={str(min_filter).split()[0]}'
-                  f' mag={str(mag_filter).split()[0]})')
         except FileNotFoundError:
             print("ERROR: unable to load texture file %s" % tex_file)
 
@@ -66,13 +62,13 @@ def calcNormals(vertices, index):
     (index_size,) = index.shape
     
     for k in range(0, index_size, 3):
-             # Calculate triangle normal
-            v1, v2, v3 = vertices[index[k]], vertices[index[k+1]], vertices[index[k+2]]
-            tri_normal = np.cross(v2 - v1, v3 - v1)
-            # Add triangle normal to vertex normals
-            normals[index[k]] += tri_normal
-            normals[index[k+1]] += tri_normal
-            normals[index[k+2]] += tri_normal
+         # Calculate triangle normal
+        v1, v2, v3 = vertices[index[k]], vertices[index[k+1]], vertices[index[k+2]]
+        tri_normal = np.cross(v2 - v1, v3 - v1)
+        # Add triangle normal to vertex normals
+        normals[index[k]] += tri_normal
+        normals[index[k+1]] += tri_normal
+        normals[index[k+2]] += tri_normal
 
     normals = np.array([n/ np.sqrt(np.sum(n ** 2)) for n in normals])
     return (normals, vertices, index)
