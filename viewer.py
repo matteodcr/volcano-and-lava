@@ -46,6 +46,11 @@ class Triangle(Mesh):
         if key == glfw.KEY_C:
             self.color = (0, 0, 0)
 
+class Duck(Node):
+    def __init__(self, material):
+        super().__init__()
+        self.add(*load('Objects/duck/10602_Rubber_Duck_v1_L3.obj', material))
+
 
 # -------------- main program and scene setup --------------------------------
 def main():
@@ -68,6 +73,15 @@ def main():
     water = Texture("Textures/water.jpg")
 
     light_dir = (1, -1, 1)
+
+
+    translate_keys = {0: vec(0, 0, 0), 2: vec(42, 1, 0), 4: vec(0, -1, 0)}
+    rotate_keys = {0: quaternion(), 2: quaternion_from_euler(1720, 32, 120),
+                   3: quaternion_from_euler(180, 0, 180), 4: quaternion()}
+    scale_keys = {0: 1, 2: 0.5, 4: 5}
+    keynode = KeyFrameControlNode(translate_keys, rotate_keys, scale_keys)
+    keynode.add(*load('Objects/duck/10602_Rubber_Duck_v1_L3.obj', shaderTexture, tex_file='Objects/duck/10602_Rubber_Duck_v1_diffuse.jpg', light_dir=light_dir))
+    viewer.add(keynode)
 
     # place instances of our basic objects
     viewer.add(*[mesh for file in sys.argv[1:] for mesh in load(file, shaderLight, light_dir=light_dir)])
