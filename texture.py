@@ -4,7 +4,7 @@ from PIL import Image  # load texture maps
 import glfw
 from matplotlib import pyplot as plt
 import numpy as np  # all matrix manipulations & OpenGL args
-from core import Mesh, Node, Texture
+from core import Mesh, Node
 import random
 
 

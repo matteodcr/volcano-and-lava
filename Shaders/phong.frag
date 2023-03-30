@@ -36,6 +36,6 @@ void main() {
 
     out_color = vec4(k_a, 1) + vec4(diffuse_color) + vec4(specular_color);
 
-    out_color = mix( out_color, vec4(skyColour,1), clamp((1 - ((75.0 - distance) / (75.0 - 50.0))), 0.0, 1.0));
+    out_color = mix( out_color, vec4(skyColour,1), clamp((1 - ((150.0 - distance) / (150.0 - 100.0))), 0.0, 1.0));
     
 }

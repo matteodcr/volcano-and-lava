@@ -214,6 +214,7 @@ try:
 except ImportError:
     Texture, Textured = None, None
 
+
 # optionally load animation module
 try:
     from animation import KeyFrameControlNode, Skinned
@@ -249,6 +250,7 @@ def load(file, shader, tex_file=None, **params):
             assert tfile, 'Cannot find texture %s in %s subtree' % (name, path)
         else:
             tfile = None
+        print(Texture is not None)
         if Texture is not None and tfile:
             mat.properties['diffuse_map'] = Texture(tex_file=tfile)
 

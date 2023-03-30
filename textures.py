@@ -7,10 +7,10 @@ from PIL import Image  # load texture maps
 import glfw
 from matplotlib import pyplot as plt
 import numpy as np  # all matrix manipulations & OpenGL args
-from core import Mesh, Node, Texture
+from core import Mesh, Node, Texture, load
 import random
 from particules import FallingLeaves
-from transform import quaternion, vec
+from transform import quaternion, quaternion_from_euler, vec
 
 
 class TexturedSphere(Textured):
@@ -237,6 +237,29 @@ class TexturedPlaneWater(KeyFrameControlNode):
         self.add((TexturedPlane(shader=shader, light_dir=light_dir, texture=texture, length=(maxx - minx) +0.4,
                                 width=(maxy - miny)+0.4,
                                 position=(-1 + x + minx + (maxx - minx) / 2, z, -1 + y + miny + (maxy - miny) / 2))))
+        
+class TexturedVolcano(KeyFrameControlNode):
+    def __init__(self, shader, light_dir, texture, position=(0, 0, 0), repeat=False, animationShift=0):
+        (x, z, y) = position
+        trans_keys = {0: vec(0, 0, 0), 1: vec(0, 0, 0)}
+        rot_keys = {0: quaternion_from_euler(0, 0, 0), 1: quaternion_from_euler(0, 0, 0)}
+        scale_keys = {0: 6, 1: 6}
+        super().__init__(trans_keys, rot_keys, scale_keys, repeat=repeat, animationShift=animationShift)
+        self.add(*load('Objects/volcano/volcano.obj', shader, texture, light_dir=light_dir))
+
+class TexturedDuck(KeyFrameControlNode):
+    def __init__(self, shader, light_dir, texture, position=(0, 0, 0), repeat=True, animationShift=0):
+        (x, z, y) = position
+        trans_keys = {0: vec(2, 11, 0), 1: vec(1.5, 11, 1.5), 2: vec(0, 11, 2), 3: vec(-1.5, 11, 1.5), 4: vec(-2, 11, 0),
+                           5: vec(-1.5, 11, -1.5), 6: vec(0, 11, -2), 7: vec(1.5, 11, -1.5), 8: vec(2, 11, 0)}
+        rot_keys = {0: quaternion_from_euler(0, 0, 270), 1: quaternion_from_euler(0, -45, 270),
+                        2: quaternion_from_euler(0, -90, 270), 3: quaternion_from_euler(0, -135, 270),
+                        4: quaternion_from_euler(0, -180, 270), 5: quaternion_from_euler(0, -225, 270),
+                        6: quaternion_from_euler(0, -270, 270), 7: quaternion_from_euler(0, -315, 270),
+                        8: quaternion_from_euler(0, 0, 270)}
+        scale_keys = {0: 0.3, 1: 0.3, 2: 0.3, 3: 0.3, 4: 0.3, 5: 0.3, 6: 0.3, 7: 0.3, 8: 0.3}
+        super().__init__(trans_keys, rot_keys, scale_keys, repeat=repeat, animationShift=animationShift)
+        self.add(*load('Objects/duck/10602_Rubber_Duck_v1_L3.obj', shader, texture, light_dir=light_dir))
 
 
 class Lake(KeyFrameControlNode):
