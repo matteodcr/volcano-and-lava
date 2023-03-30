@@ -220,7 +220,6 @@ class TexturedCube(Textured):
         self.drawable.draw(primitives=primitives, **uniforms)
         GL.glDepthFunc(GL.GL_LESS)
 
-
 def nerbyPoints(point):
     (x, y) = point
     return [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
