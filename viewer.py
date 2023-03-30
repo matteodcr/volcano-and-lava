@@ -63,7 +63,7 @@ def main():
     viewer = Viewer()
 
     # default color shader
-    shader = Shader("Shaders/color.vert", "Shaders/color.frag")
+    # shader = Shader("Shaders/color.vert", "Shaders/color.frag")
     shaderTexture = Shader("Shaders/texture.vert", "Shaders/texture.frag")
     shaderLight = Shader("Shaders/phong.vert", "Shaders/phong.frag")
     skyboxShader = Shader("Shaders/skybox.vert", "Shaders/skybox.frag")
