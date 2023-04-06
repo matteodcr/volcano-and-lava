@@ -239,13 +239,13 @@ class TexturedPlaneWater(KeyFrameControlNode):
                                 position=(-1 + x + minx + (maxx - minx) / 2, z, -1 + y + miny + (maxy - miny) / 2))))
         
 class TexturedVolcano(KeyFrameControlNode):
-    def __init__(self, shader, light_dir, texture, position=(0, 0, 0), repeat=False, animationShift=0):
-        (x, z, y) = position
+    def __init__(self, shader, light_dir, texture, lava_texture, position=(0, 0, 0), repeat=False, animationShift=0):
         trans_keys = {0: vec(0, 0, 0), 1: vec(0, 0, 0)}
         rot_keys = {0: quaternion_from_euler(0, 0, 0), 1: quaternion_from_euler(0, 0, 0)}
         scale_keys = {0: 6, 1: 6}
         super().__init__(trans_keys, rot_keys, scale_keys, repeat=repeat, animationShift=animationShift)
         self.add(*load('Objects/volcano/volcano.obj', shader, texture, light_dir=light_dir))
+        self.add(TexturedCylinder(shader, lava_texture, height=0, divisions=50, r=0.7, position=(0, 1.8, 0)))
 
 class TexturedDuck(KeyFrameControlNode):
     def __init__(self, shader, light_dir, texture, position=(0, 0, 0), repeat=True, animationShift=0):
@@ -260,7 +260,6 @@ class TexturedDuck(KeyFrameControlNode):
         scale_keys = {0: 0.3, 1: 0.3, 2: 0.3, 3: 0.3, 4: 0.3, 5: 0.3, 6: 0.3, 7: 0.3, 8: 0.3}
         super().__init__(trans_keys, rot_keys, scale_keys, repeat=repeat, animationShift=animationShift)
         self.add(*load('Objects/duck/10602_Rubber_Duck_v1_L3.obj', shader, texture, light_dir=light_dir))
-
 
 class Lake(KeyFrameControlNode):
     def __init__(self, shader, terrainSize, waterTexture, light_dir, position=None, depth=4):
