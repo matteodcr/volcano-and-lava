@@ -73,17 +73,14 @@ def main():
     light_dir = (1, -1, 1)
 
     # Volcano
-    viewer.add(TexturedVolcano(shaderTexture, light_dir, volcano_tex_file, lava))
-    # Duck
-    viewer.add(TexturedDuck(shaderTexture, light_dir, duck_tex_file))
+    viewer.add(TexturedVolcano(shaderTexture, light_dir, volcano_tex_file, lava, duck_tex_file))
     # Skybox
     viewer.add(SkyBox(skyboxShader, "Textures/skybox/"))
     # Terrain with node (Trees, Lakes, ...)
     viewer.add(LakeForestTerrain(shaderLight, shaderTexture, grass, water, leaves, trunk, leaf, viewer, light_dir))
 
-    print("====Controls====\nLeft-click: rotate camera\nRight-click: move camera\nMouse wheel: Zoom/Dezoom\nZ: Show vertices\nSpace: Reset time to 0\n")
-    print("→ ← ↑ ↓: Translate view\n")
-
+    print("====Controls====\nLeft-click: rotate camera\nRight-click: move camera\nMouse wheel: Zoom/Dezoom\nZ: Show vertices\nSpace: Reset time to 0\n→ ← ↑ ↓: Translate view")
+    print("P/M: modify gamma correction\nO/L: modify fog distance\n")
     # start rendering loop
     viewer.run()
 

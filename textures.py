@@ -185,22 +185,6 @@ class TexturedTree(Node):
             self.add(FallingLeaves(viewer, shaderLeaf, light_dir, z_ - z - 0.5, leafTexture, (x_, z_, y_), ray=r))
 
 
-class ForestTerrain(Node):
-    def __init__(self, shader, shaderLeaf, terrainTexture, trunkTextures, leavesTextures, viewer, size=(100, 100),
-                 position=(0, 0, 0),
-                 light_dir=None):
-        super().__init__()
-        self.add(Terrain(shader=shader, size=size, texture=terrainTexture, position=position, light_dir=light_dir))
-        (length, width) = size
-        (posx, posz, posy) = position
-        trees = random.randint(0, (length / 10) * (width / 10))
-        for t in range(trees):
-            self.add(TexturedTree(shader=shader, shaderLeaf=shaderLeaf, position=(
-                posx - length / 2 + length * random.random(), posz, posy - width / 2 + width * random.random()),
-                                  trunkTextures=trunkTextures, leavesTextures=leavesTextures, light_dir=light_dir,
-                                  viewer=viewer))
-
-
 class TexturedCube(Textured):
     def __init__(self, drawable, **textures):
         super().__init__(drawable, **textures)
@@ -216,6 +200,7 @@ class TexturedCube(Textured):
         self.drawable.draw(primitives=primitives, **uniforms)
         GL.glDepthFunc(GL.GL_LESS)
 
+
 def nerbyPoints(point):
     (x, y) = point
     return [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
@@ -225,46 +210,56 @@ class TexturedPlaneWater(KeyFrameControlNode):
     def __init__(self, shader, light_dir, texture, position=(0, 0, 0), shinyness=2, scale=1,
                  repeat=True, animationShift=0, minx=0, maxx=1, miny=0, maxy=1):
         (x, z, y) = position
-        trans_keys = {0: vec(x, y, z), 3: vec(x-0.1, y, z-0.1), 4: vec(x-0.2, y, z-0.2),
-                      5: vec(x, y, z)}
-        rot_keys = {0: quaternion(), 5: quaternion()}
-        scale_keys = {0: 1, 5: 1}
+        trans_keys = {0: vec(x, y - 0.5, z), 10: vec(x - 0.1, y - 0.5, z - 0.1),
+                      20: vec(x - 0.1, y - 0.5, z - 0.1), 25: vec(x, y - 0.5, z)}
+        rot_keys = {0: quaternion_from_euler(0.5, 0, 0), 5: quaternion_from_euler(-0.5, 0, 0),
+                    10: quaternion_from_euler(0.5, 0, 0), 15: quaternion_from_euler(-0.5, 0, 0),
+                    20: quaternion_from_euler(0.5, 0, 0), 25: quaternion_from_euler(-0.5, 0, 0)}
+        scale_keys = {0: 1, 25: 1}
         super().__init__(trans_keys, rot_keys, scale_keys, repeat=repeat, animationShift=animationShift)
-        self.add((TexturedPlane(shader=shader, light_dir=light_dir, texture=texture, length=(maxx - minx) +0.4,
-                                width=(maxy - miny)+0.4,
+        self.add((TexturedPlane(shader=shader, light_dir=light_dir, texture=texture, length=(maxx - minx) + 0.4,
+                                width=(maxy - miny) + 0.4,
                                 position=(-1 + x + minx + (maxx - minx) / 2, z, -1 + y + miny + (maxy - miny) / 2))))
-        
+
+
+class TexturedDuck(KeyFrameControlNode):
+    def __init__(self, shader, light_dir, texture, position=(0, 0, 0), repeat=True, animationShift=0):
+        (x, z, y) = position
+        trans_keys = {0: vec(0.5, 1.8, 0), 1: vec(0.375, 1.8, 0.375), 2: vec(0, 1.8, 0.5), 3: vec(-0.375, 1.8, 0.375),
+                      4: vec(-0.5, 1.8, 0),
+                      5: vec(-0.375, 1.8, -0.375), 6: vec(0, 1.8, -0.5), 7: vec(0.375, 1.8, -0.375),
+                      8: vec(0.5, 1.8, 0)}
+        rot_keys = {0: quaternion_from_euler(0, 0, 270), 1: quaternion_from_euler(0, -45, 270),
+                    2: quaternion_from_euler(0, -90, 270), 3: quaternion_from_euler(0, -135, 270),
+                    4: quaternion_from_euler(0, -180, 270), 5: quaternion_from_euler(0, -225, 270),
+                    6: quaternion_from_euler(0, -270, 270), 7: quaternion_from_euler(0, -315, 270),
+                    8: quaternion_from_euler(0, 0, 270)}
+        scale_keys = {0: 0.05, 8: 0.05}
+        super().__init__(trans_keys, rot_keys, scale_keys, repeat=repeat, animationShift=animationShift)
+        self.add(*load('Objects/duck/10602_Rubber_Duck_v1_L3.obj', shader, texture, light_dir=light_dir))
+
 
 class TexturedLava(KeyFrameControlNode):
-    def __init__(self, shader, lava_texture, repeat=True, animationShift=0):
-        trans_keys = {0: vec(0, 0, 0), 1: vec(0, 0, 0), 2: vec(0, 0, 0), 3: vec(0, 0, 0), 4: vec(0, 0, 0)}
-        rot_keys = {0: quaternion_from_euler(0, 0, 0), 1: quaternion_from_euler(0, -90, 0), 2: quaternion_from_euler(0, -180, 0), 3: quaternion_from_euler(0, -270, 0), 4: quaternion_from_euler(0, -360, 0)}
-        scale_keys = {0: 1, 1: 1, 2: 1, 3: 1, 4: 1}
+    def __init__(self, shader, lava_texture, duck_tex_file, light_dir, repeat=True, animationShift=0):
+        trans_keys = {0: vec(0, 0, 0), 4: vec(0, -0.1, 0), 8: vec(0, 0, 0), 12: vec(0, 0.1, 0), 16: vec(0, 0, 0)}
+        rot_keys = {0: quaternion_from_euler(0, 0, 0), 4: quaternion_from_euler(0, -90, 0),
+                    8: quaternion_from_euler(0, -180, 0), 12: quaternion_from_euler(0, -270, 0),
+                    16: quaternion_from_euler(0, -360, 0)}
+        scale_keys = {0: 1, 16: 1}
         super().__init__(trans_keys, rot_keys, scale_keys, repeat=repeat, animationShift=animationShift)
         self.add(TexturedCylinder(shader, lava_texture, height=0, divisions=50, r=0.7, position=(0, 1.8, 0)))
+        self.add(TexturedDuck(shader, light_dir, duck_tex_file))
+
 
 class TexturedVolcano(KeyFrameControlNode):
-    def __init__(self, shader, light_dir, texture, lava_texture, repeat=False, animationShift=0):
+    def __init__(self, shader, light_dir, texture, lava_texture, duck_tex_file, repeat=False, animationShift=0):
         trans_keys = {0: vec(0, 0, 0), 1: vec(0, 0, 0)}
         rot_keys = {0: quaternion_from_euler(0, 0, 0), 4: quaternion_from_euler(0, 180, 0)}
         scale_keys = {0: 6, 1: 6}
         super().__init__(trans_keys, rot_keys, scale_keys, repeat=repeat, animationShift=animationShift)
         self.add(*load('Objects/volcano/volcano.obj', shader, texture, light_dir=light_dir))
-        self.add(TexturedLava(shader, lava_texture))
+        self.add(TexturedLava(shader, lava_texture, duck_tex_file, light_dir))
 
-class TexturedDuck(KeyFrameControlNode):
-    def __init__(self, shader, light_dir, texture, position=(0, 0, 0), repeat=True, animationShift=0):
-        (x, z, y) = position
-        trans_keys = {0: vec(2, 11, 0), 1: vec(1.5, 11, 1.5), 2: vec(0, 11, 2), 3: vec(-1.5, 11, 1.5), 4: vec(-2, 11, 0),
-                           5: vec(-1.5, 11, -1.5), 6: vec(0, 11, -2), 7: vec(1.5, 11, -1.5), 8: vec(2, 11, 0)}
-        rot_keys = {0: quaternion_from_euler(0, 0, 270), 1: quaternion_from_euler(0, -45, 270),
-                        2: quaternion_from_euler(0, -90, 270), 3: quaternion_from_euler(0, -135, 270),
-                        4: quaternion_from_euler(0, -180, 270), 5: quaternion_from_euler(0, -225, 270),
-                        6: quaternion_from_euler(0, -270, 270), 7: quaternion_from_euler(0, -315, 270),
-                        8: quaternion_from_euler(0, 0, 270)}
-        scale_keys = {0: 0.3, 1: 0.3, 2: 0.3, 3: 0.3, 4: 0.3, 5: 0.3, 6: 0.3, 7: 0.3, 8: 0.3}
-        super().__init__(trans_keys, rot_keys, scale_keys, repeat=repeat, animationShift=animationShift)
-        self.add(*load('Objects/duck/10602_Rubber_Duck_v1_L3.obj', shader, texture, light_dir=light_dir))
 
 class Lake(KeyFrameControlNode):
     def __init__(self, shader, terrainSize, waterTexture, light_dir, position=None, depth=4):
@@ -409,6 +404,8 @@ class LakeForestTerrain(Node):
         (length, width) = size
         trees = min(10, random.randint(0, (length / 10) * (width / 10)))
         for t in range(trees):
-            self.add(TexturedTree(shader=shader, shaderLeaf=shaderLeaf, position=terrain.getRandomPointOnGrass(),
-                                  trunkTextures=trunkTextures, leavesTextures=leavesTextures, light_dir=light_dir,
-                                  viewer=viewer, leafTexture=leafTexture))
+            (posx, posy, posz) = terrain.getRandomPointOnGrass()
+            if -20 <= posx >= 20 or -20 <= posz >= 20:
+                self.add(TexturedTree(shader=shader, shaderLeaf=shaderLeaf, position=terrain.getRandomPointOnGrass(),
+                                      trunkTextures=trunkTextures, leavesTextures=leavesTextures, light_dir=light_dir,
+                                      viewer=viewer, leafTexture=leafTexture))

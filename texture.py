@@ -66,5 +66,6 @@ def calcNormals(vertices, index):
         normals[index[k+1]] += tri_normal
         normals[index[k+2]] += tri_normal
 
-    normals = np.array([n/ np.sqrt(np.sum(n ** 2)) for n in normals])
+    epsilon = 1e-8
+    normals = np.array([n / np.sqrt(np.sum(n ** 2) + epsilon) for n in normals])
     return (normals, vertices, index)
