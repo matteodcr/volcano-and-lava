@@ -1,13 +1,9 @@
 from animation import KeyFrameControlNode
-from texture import Texture, Textured, calcNormals
+from texture import Textured, calcNormals
 
-from itertools import cycle
 import OpenGL.GL as GL  # standard Python OpenGL wrapper
-from PIL import Image  # load texture maps
-import glfw
-from matplotlib import pyplot as plt
 import numpy as np  # all matrix manipulations & OpenGL args
-from core import Mesh, Node, Texture, load
+from core import Mesh, Node, load
 import random
 from particules import FallingLeaves
 from transform import quaternion, quaternion_from_euler, vec
@@ -238,14 +234,23 @@ class TexturedPlaneWater(KeyFrameControlNode):
                                 width=(maxy - miny)+0.4,
                                 position=(-1 + x + minx + (maxx - minx) / 2, z, -1 + y + miny + (maxy - miny) / 2))))
         
+
+class TexturedLava(KeyFrameControlNode):
+    def __init__(self, shader, lava_texture, repeat=True, animationShift=0):
+        trans_keys = {0: vec(0, 0, 0), 1: vec(0, 0, 0), 2: vec(0, 0, 0), 3: vec(0, 0, 0), 4: vec(0, 0, 0)}
+        rot_keys = {0: quaternion_from_euler(0, 0, 0), 1: quaternion_from_euler(0, -90, 0), 2: quaternion_from_euler(0, -180, 0), 3: quaternion_from_euler(0, -270, 0), 4: quaternion_from_euler(0, -360, 0)}
+        scale_keys = {0: 1, 1: 1, 2: 1, 3: 1, 4: 1}
+        super().__init__(trans_keys, rot_keys, scale_keys, repeat=repeat, animationShift=animationShift)
+        self.add(TexturedCylinder(shader, lava_texture, height=0, divisions=50, r=0.7, position=(0, 1.8, 0)))
+
 class TexturedVolcano(KeyFrameControlNode):
-    def __init__(self, shader, light_dir, texture, lava_texture, position=(0, 0, 0), repeat=False, animationShift=0):
+    def __init__(self, shader, light_dir, texture, lava_texture, repeat=False, animationShift=0):
         trans_keys = {0: vec(0, 0, 0), 1: vec(0, 0, 0)}
-        rot_keys = {0: quaternion_from_euler(0, 0, 0), 1: quaternion_from_euler(0, 0, 0)}
+        rot_keys = {0: quaternion_from_euler(0, 0, 0), 4: quaternion_from_euler(0, 180, 0)}
         scale_keys = {0: 6, 1: 6}
         super().__init__(trans_keys, rot_keys, scale_keys, repeat=repeat, animationShift=animationShift)
         self.add(*load('Objects/volcano/volcano.obj', shader, texture, light_dir=light_dir))
-        self.add(TexturedCylinder(shader, lava_texture, height=0, divisions=50, r=0.7, position=(0, 1.8, 0)))
+        self.add(TexturedLava(shader, lava_texture))
 
 class TexturedDuck(KeyFrameControlNode):
     def __init__(self, shader, light_dir, texture, position=(0, 0, 0), repeat=True, animationShift=0):

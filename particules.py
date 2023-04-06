@@ -1,13 +1,10 @@
-from itertools import cycle
 import OpenGL.GL as GL  # standard Python OpenGL wrapper
-from PIL import Image  # load texture maps
-import glfw
-from matplotlib import pyplot as plt
+
 import numpy as np  # all matrix manipulations & OpenGL args
-from core import Mesh, Node, Texture
+from core import Mesh, Node
 import random
-from texture import Texture, Textured, calcNormals
-from transform import Trackball, vec, quaternion, quaternion_from_euler
+from texture import Textured
+from transform import vec, quaternion
 from animation import (KeyFrameControlNode)
 
 class Particule(Textured):

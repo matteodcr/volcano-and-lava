@@ -4,14 +4,12 @@ from bisect import bisect_left      # search sorted keyframe lists
 # External, non built-in modules
 import OpenGL.GL as GL              # standard Python OpenGL wrapper
 import glfw                         # lean window system wrapper for OpenGL
-import numpy as np                  # all matrix manipulations & OpenGL args
 
 from core import Node
-from transform import (lerp, quaternion_slerp, quaternion_matrix, vec,
-                       identity, translate, scale)
+from transform import (lerp, quaternion_slerp, quaternion_matrix, identity, translate, scale)
 
 
-# -------------- Keyframing Utilities TP6 ------------------------------------
+# -------------- Keyframing Utilities ------------------------------------
 class KeyFrames:
     """ Stores keyframe pairs for any value type with interpolation_function"""
     def __init__(self, time_value_pairs, interpolation_function=lerp):
@@ -75,19 +73,3 @@ class KeyFrameControlNode(Node):
         else :
             self.transform = self.keyframes.value(glfw.get_time()+self.animationShift)
         super().draw(primitives=primitives, **uniforms)
-
-
-# -------------- Linear Blend Skinning : TP7 ---------------------------------
-class Skinned:
-    """ Skinned mesh decorator, passes bone world transforms to shader """
-    def __init__(self, mesh, bone_nodes, bone_offsets):
-        self.mesh = mesh
-
-        # store skinning data
-        self.bone_nodes = bone_nodes
-        self.bone_offsets = np.array(bone_offsets, np.float32)
-
-    def draw(self, **uniforms):
-        world_transforms = [node.world_transform for node in self.bone_nodes]
-        uniforms['bone_matrix'] = world_transforms @ self.bone_offsets
-        self.mesh.draw(**uniforms)

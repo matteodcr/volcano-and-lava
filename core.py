@@ -372,6 +372,9 @@ class Viewer(Node):
         self.trackball = Trackball()
         self.mouse = (0, 0)
 
+        self.gamma = 1
+        self.fog_offset = 150
+
         # register event handlers
         glfw.set_key_callback(self.win, self.on_key)
         glfw.set_cursor_pos_callback(self.win, self.on_mouse_move)
@@ -405,7 +408,9 @@ class Viewer(Node):
                       projection=self.trackball.projection_matrix(win_size),
                       model=identity(),
                       w_camera_position=cam_pos,
-                      skyColour=(115/256, 149/256, 153/256))
+                      skyColour=(115/256, 149/256, 153/256),
+                      gamma=self.gamma,
+                      fog_offset=self.fog_offset)
 
             # flush render commands, and swap draw buffers
             glfw.swap_buffers(self.win)
@@ -434,6 +439,14 @@ class Viewer(Node):
             if key == glfw.KEY_DOWN:
                 (prev_x, prev_y) = self.trackball.pos2d
                 self.trackball.pos2d = (prev_x, prev_y+1)
+            if key == glfw.KEY_P:
+                self.gamma += 0.1
+            if key == glfw.KEY_SEMICOLON:
+                self.gamma -= 0.1
+            if key == glfw.KEY_O:
+                self.fog_offset += 3
+            if key == glfw.KEY_L:
+                self.fog_offset -= 3
 
             # call Node.key_handler which calls key_handlers for all drawables
             self.key_handler(key)

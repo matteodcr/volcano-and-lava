@@ -3,6 +3,8 @@
 // fragment position and normal of the fragment, in WORLD coordinates
 in vec3 w_position, w_normal;
 in vec3 normalized_pos;
+uniform float gamma;
+uniform float fog_offset;
 
 uniform sampler2D diffuse_map;
 in vec2 frag_tex_coords;
@@ -36,10 +38,9 @@ void main() {
 
     out_color = vec4(k_a, 1) + vec4(diffuse_color) + vec4(specular_color);
 
-    out_color = mix( out_color, vec4(skyColour,1), clamp((1 - ((150.0 - distance) / (150.0 - 100.0))), 0.0, 1.0));
+    out_color = mix( out_color, vec4(skyColour,1), clamp((1 - ((fog_offset - distance) / 50.0)), 0.0, 1.0));
 
     // Gamma correction
-    float gamma = 1.6;
     out_color.xyz = pow(out_color.xyz, vec3(1.0/gamma));
     
 }

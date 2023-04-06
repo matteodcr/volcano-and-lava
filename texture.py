@@ -1,11 +1,7 @@
-from itertools import cycle
 import OpenGL.GL as GL  # standard Python OpenGL wrapper
 from PIL import Image  # load texture maps
-import glfw
-from matplotlib import pyplot as plt
 import numpy as np  # all matrix manipulations & OpenGL args
-from core import Mesh, Node
-import random
+from core import Node
 
 
 # -------------- OpenGL Texture Wrapper ---------------------------------------
