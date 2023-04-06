@@ -64,4 +64,12 @@ We can move the Trackball with directionnal arrow keys.
 #### 5. Other effect of your choice
 
 We chose to apply gamma correction.
+Gamma correction is a technique used to adjust the brightness and contrast of digital images.
+It uses a power function on each pixel's brightness value to compensate the fact that the relationship between the brightness of an image and the pixel values that represent it is nonlinear.
+
+Here is an example of gamma correction in our code : 
+
+out_color.xyz = pow(out_color.xyz, vec3(1.0/gamma));
+
+As you can see, we use a power function on R, G and B components of each pixel so that brightness is linearly adjusted
 
